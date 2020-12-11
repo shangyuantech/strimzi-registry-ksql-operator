@@ -15,27 +15,27 @@ import io.strimzi.operator.schemaregistry.crd.DoneableSchemaRegistry;
 import io.strimzi.operator.schemaregistry.crd.SchemaRegistry;
 import io.strimzi.operator.schemaregistry.crd.SchemaRegistryList;
 
-import java.util.logging.Level;
-import java.util.logging.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class OperatorMain {
 
-    public static final Logger logger = Logger.getLogger(OperatorMain.class.getName());
+    public static final Logger logger = LoggerFactory.getLogger(OperatorMain.class.getName());
 
     public static void main(String args[]) throws InterruptedException {
         try (KubernetesClient client = new DefaultKubernetesClient()) {
             String namespace = client.getNamespace();
             if (namespace == null) {
-                logger.log(Level.INFO, "No namespace found via config, assuming default.");
+                logger.warn("No namespace found via config, assuming default.");
                 namespace = "default";
             }
 
-            logger.log(Level.INFO, "Using namespace : " + namespace);
+            logger.info("Using namespace : " + namespace);
             CustomResourceDefinitionContext SchemaRegistryCustomResourceDefinitionContext = new CustomResourceDefinitionContext.Builder()
                     .withVersion("v1beta1")
                     .withScope("Namespaced")
                     .withGroup("kafka.strimzi.io")
-                    .withPlural("SchemaRegistry")
+                    .withPlural("schemaregistries")
                     .build();
 
             SharedInformerFactory informerFactory = client.informers();
@@ -59,11 +59,11 @@ public class OperatorMain {
             SchemaRegistryController.create();
             informerFactory.startAllRegisteredInformers();
             informerFactory.addSharedInformerEventListener(exception ->
-                    logger.log(Level.SEVERE, "Exception occurred, but caught", exception));
+                    logger.error("Exception occurred, but caught", exception));
 
             SchemaRegistryController.run();
         } catch (KubernetesClientException exception) {
-            logger.log(Level.SEVERE, "Kubernetes Client Exception : {}", exception.getMessage());
+            logger.error( "Kubernetes Client Exception : {}", exception.getMessage());
         }
     }
 }

@@ -21,8 +21,11 @@ import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
-import java.util.logging.Level;
-import java.util.logging.Logger;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+
 public class SchemaRegistryController {
 
     private final BlockingQueue<String> workqueue;
@@ -32,7 +35,7 @@ public class SchemaRegistryController {
     private final Lister<Pod> podLister;
     private final KubernetesClient kubernetesClient;
     private final MixedOperation<SchemaRegistry, SchemaRegistryList, DoneableSchemaRegistry, Resource<SchemaRegistry, DoneableSchemaRegistry>> srClient;
-    public static final Logger logger = Logger.getLogger(SchemaRegistryController.class.getName());
+    public static final Logger logger = LoggerFactory.getLogger(SchemaRegistryController.class.getName());
     public static final String APP_LABEL = "app";
 
     public SchemaRegistryController(KubernetesClient kubernetesClient, 
@@ -88,36 +91,36 @@ public class SchemaRegistryController {
     }
 
     public void run() {
-        logger.log(Level.INFO, "Starting SchemaRegistry controller");
+        logger.info( "Starting SchemaRegistry controller");
         while (!podInformer.hasSynced() || !srInformer.hasSynced()) {
             // Wait till Informer syncs
         }
 
         while (true) {
             try {
-                logger.log(Level.INFO, "trying to fetch item from workqueue...");
+                logger.info("trying to fetch item from workqueue...");
                 if (workqueue.isEmpty()) {
-                    logger.log(Level.INFO, "Work Queue is empty");
+                    logger.info("Work Queue is empty");
                 }
                 String key = workqueue.take();
                 Objects.requireNonNull(key, "key can't be null");
-                logger.log(Level.INFO, String.format("Got %s", key));
+                logger.info(String.format("Got %s", key));
                 if (key.isEmpty() || (!key.contains("/"))) {
-                    logger.log(Level.WARNING, String.format("invalid resource key: %s", key));
+                    logger.warn(String.format("invalid resource key: %s", key));
                 }
 
                 // Get the SchemaRegistry resource's name from key which is in format namespace/name
                 String name = key.split("/")[1];
                 SchemaRegistry SchemaRegistry = SchemaRegistryLister.get(key.split("/")[1]);
                 if (SchemaRegistry == null) {
-                    logger.log(Level.SEVERE, String.format("SchemaRegistry %s in workqueue no longer exists", name));
+                    logger.error(String.format("SchemaRegistry %s in workqueue no longer exists", name));
                     return;
                 }
                 reconcile(SchemaRegistry);
 
             } catch (InterruptedException interruptedException) {
                 Thread.currentThread().interrupt();
-                logger.log(Level.SEVERE, "controller interrupted..");
+                logger.error("controller interrupted..");
             }
         }
     }
@@ -168,22 +171,22 @@ public class SchemaRegistryController {
             }
         }
 
-        logger.log(Level.INFO, String.format("count: %d", podNames.size()));
+        logger.info(String.format("count: %d", podNames.size()));
         return podNames;
     }
 
     private void enqueueSchemaRegistry(SchemaRegistry SchemaRegistry) {
-        logger.log(Level.INFO, "enqueueSchemaRegistry(" + SchemaRegistry.getMetadata().getName() + ")");
+        logger.info("enqueueSchemaRegistry(" + SchemaRegistry.getMetadata().getName() + ")");
         String key = Cache.metaNamespaceKeyFunc(SchemaRegistry);
-        logger.log(Level.INFO, String.format("Going to enqueue key %s", key));
+        logger.info(String.format("Going to enqueue key %s", key));
         if (key != null && !key.isEmpty()) {
-            logger.log(Level.INFO, "Adding item to workqueue");
+            logger.info("Adding item to workqueue");
             workqueue.add(key);
         }
     }
 
     private void handlePodObject(Pod pod) {
-        logger.log(Level.INFO, "handlePodObject(" + pod.getMetadata().getName() + ")");
+        logger.info("handlePodObject(" + pod.getMetadata().getName() + ")");
         OwnerReference ownerReference = getControllerOf(pod);
         Objects.requireNonNull(ownerReference);
         if (!ownerReference.getKind().equalsIgnoreCase("SchemaRegistry")) {
