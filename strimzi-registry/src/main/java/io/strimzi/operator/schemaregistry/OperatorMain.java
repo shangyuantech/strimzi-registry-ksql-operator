@@ -22,7 +22,7 @@ public class OperatorMain {
 
     public static final Logger logger = LoggerFactory.getLogger(OperatorMain.class.getName());
 
-    public static void main(String args[]) throws InterruptedException {
+    public static void main(String args[]) {
         try (KubernetesClient client = new DefaultKubernetesClient()) {
             String namespace = client.getNamespace();
             if (namespace == null) {
@@ -52,18 +52,18 @@ public class OperatorMain {
                             SchemaRegistryCustomResourceDefinitionContext, SchemaRegistry.class,
                             SchemaRegistryList.class, 10 * 60 * 1000);
 
-            SchemaRegistryController SchemaRegistryController = new SchemaRegistryController(
+            SchemaRegistryController schemaRegistryController = new SchemaRegistryController(
                     client, SchemaRegistryClient, podSharedIndexInformer,
                     SchemaRegistrySharedIndexInformer, namespace);
 
-            SchemaRegistryController.create();
+            schemaRegistryController.create();
             informerFactory.startAllRegisteredInformers();
             informerFactory.addSharedInformerEventListener(exception ->
                     logger.error("Exception occurred, but caught", exception));
 
-            SchemaRegistryController.run();
+            schemaRegistryController.run();
         } catch (KubernetesClientException exception) {
-            logger.error( "Kubernetes Client Exception : {}", exception.getMessage());
+            logger.error("Kubernetes Client Exception", exception);
         }
     }
 }

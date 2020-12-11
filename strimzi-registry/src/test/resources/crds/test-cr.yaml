@@ -1,0 +1,25 @@
+apiVersion: kafka.strimzi.io/v1beta1
+kind: SchemaRegistry
+metadata:
+  namespace: kafka
+  name: example-schemaregistry
+spec:
+  version: 2.6.0
+  replicas: 1
+  bootstrapServers: 'PLAINTEXT://kafka-brokers:9092'
+  # 参考 https://docs.confluent.io/5.5.0/schema-registry/installation/config.html#sr-configuration-options
+  config:
+    kafkastore.group.id: example-schemaregistry
+    kafkastore.init.timeout.ms: '12000'
+    kafkastore.timeout.ms: '12000'
+  otherProps:
+    TZ: 'Asia/Shanghai'
+  image: confluentinc/cp-schema-registry:5.5.0
+  external:
+    type: nodeport
+#    loadbalanceIp: ""
+    nodeport: 30881
+#  template:
+#    pod:
+#      imagePullSecrets:
+#      - name: pullsecret

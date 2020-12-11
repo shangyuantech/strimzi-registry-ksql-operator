@@ -1,7 +1,0 @@
-apiVersion: kafka.strimzi.io/v1beta1
-kind: SchemaRegistry
-metadata:
-  namespace: kafka
-  name: example-schemaregistry
-spec:
-  replicas: 1

@@ -38,10 +38,10 @@ public class SchemaRegistryController {
     public static final Logger logger = LoggerFactory.getLogger(SchemaRegistryController.class.getName());
     public static final String APP_LABEL = "app";
 
-    public SchemaRegistryController(KubernetesClient kubernetesClient, 
-                            MixedOperation<SchemaRegistry, SchemaRegistryList, DoneableSchemaRegistry, Resource<SchemaRegistry, DoneableSchemaRegistry>> SchemaRegistryClient, 
-                            SharedIndexInformer<Pod> podInformer, SharedIndexInformer<SchemaRegistry> srInformer, 
-                            String namespace) {
+    public SchemaRegistryController(KubernetesClient kubernetesClient,
+                                    MixedOperation<SchemaRegistry, SchemaRegistryList, DoneableSchemaRegistry, Resource<SchemaRegistry, DoneableSchemaRegistry>> SchemaRegistryClient,
+                                    SharedIndexInformer<Pod> podInformer, SharedIndexInformer<SchemaRegistry> srInformer,
+                                    String namespace) {
         this.kubernetesClient = kubernetesClient;
         this.srClient = SchemaRegistryClient;
         this.SchemaRegistryLister = new Lister<>(srInformer.getIndexer(), namespace);
@@ -52,19 +52,20 @@ public class SchemaRegistryController {
     }
 
     public void create() {
+
         srInformer.addEventHandler(new ResourceEventHandler<SchemaRegistry>() {
             @Override
-            public void onAdd(SchemaRegistry SchemaRegistry) {
-                enqueueSchemaRegistry(SchemaRegistry);
+            public void onAdd(SchemaRegistry schemaRegistry) {
+                enqueueSchemaRegistry(schemaRegistry);
             }
 
             @Override
-            public void onUpdate(SchemaRegistry SchemaRegistry, SchemaRegistry newSchemaRegistry) {
+            public void onUpdate(SchemaRegistry schemaRegistry, SchemaRegistry newSchemaRegistry) {
                 enqueueSchemaRegistry(newSchemaRegistry);
             }
 
             @Override
-            public void onDelete(SchemaRegistry SchemaRegistry, boolean b) {
+            public void onDelete(SchemaRegistry schemaRegistry, boolean b) {
                 // Do nothing
             }
         });
@@ -91,17 +92,18 @@ public class SchemaRegistryController {
     }
 
     public void run() {
-        logger.info( "Starting SchemaRegistry controller");
+        logger.info("Starting SchemaRegistry Controller");
         while (!podInformer.hasSynced() || !srInformer.hasSynced()) {
             // Wait till Informer syncs
         }
 
         while (true) {
             try {
-                logger.info("trying to fetch item from workqueue...");
+                logger.info("trying to fetch item from work queue...");
                 if (workqueue.isEmpty()) {
                     logger.info("Work Queue is empty");
                 }
+
                 String key = workqueue.take();
                 Objects.requireNonNull(key, "key can't be null");
                 logger.info(String.format("Got %s", key));
@@ -111,12 +113,14 @@ public class SchemaRegistryController {
 
                 // Get the SchemaRegistry resource's name from key which is in format namespace/name
                 String name = key.split("/")[1];
-                SchemaRegistry SchemaRegistry = SchemaRegistryLister.get(key.split("/")[1]);
-                if (SchemaRegistry == null) {
-                    logger.error(String.format("SchemaRegistry %s in workqueue no longer exists", name));
+                SchemaRegistry schemaRegistry = SchemaRegistryLister.get(key.split("/")[1]);
+                if (schemaRegistry == null) {
+                    logger.error(String.format("SchemaRegistry %s in work queue no longer exists", name));
                     return;
                 }
-                reconcile(SchemaRegistry);
+
+                // reconcile SchemaRegistry
+                reconcile(schemaRegistry);
 
             } catch (InterruptedException interruptedException) {
                 Thread.currentThread().interrupt();
@@ -159,26 +163,26 @@ public class SchemaRegistryController {
         }
     }
 
-    private List<String> podCountByLabel(String label, String SchemaRegistryName) {
+    private List<String> podCountByLabel(String label, String schemaRegistryName) {
         List<String> podNames = new ArrayList<>();
         List<Pod> pods = podLister.list();
 
         for (Pod pod : pods) {
-            if (pod.getMetadata().getLabels().entrySet().contains(new AbstractMap.SimpleEntry<>(label, SchemaRegistryName))) {
+            if (pod.getMetadata().getLabels().entrySet().contains(new AbstractMap.SimpleEntry<>(label, schemaRegistryName))) {
                 if (pod.getStatus().getPhase().equals("Running") || pod.getStatus().getPhase().equals("Pending")) {
                     podNames.add(pod.getMetadata().getName());
                 }
             }
         }
 
-        logger.info(String.format("count: %d", podNames.size()));
+        logger.info("count: {}", podNames.size());
         return podNames;
     }
 
     private void enqueueSchemaRegistry(SchemaRegistry SchemaRegistry) {
         logger.info("enqueueSchemaRegistry(" + SchemaRegistry.getMetadata().getName() + ")");
         String key = Cache.metaNamespaceKeyFunc(SchemaRegistry);
-        logger.info(String.format("Going to enqueue key %s", key));
+        logger.info("Going to enqueue key {}", key);
         if (key != null && !key.isEmpty()) {
             logger.info("Adding item to workqueue");
             workqueue.add(key);
@@ -186,15 +190,15 @@ public class SchemaRegistryController {
     }
 
     private void handlePodObject(Pod pod) {
-        logger.info("handlePodObject(" + pod.getMetadata().getName() + ")");
+        logger.debug("handlePodObject({})", pod.getMetadata().getName());
         OwnerReference ownerReference = getControllerOf(pod);
         Objects.requireNonNull(ownerReference);
         if (!ownerReference.getKind().equalsIgnoreCase("SchemaRegistry")) {
             return;
         }
-        SchemaRegistry SchemaRegistry = SchemaRegistryLister.get(ownerReference.getName());
-        if (SchemaRegistry != null) {
-            enqueueSchemaRegistry(SchemaRegistry);
+        SchemaRegistry schemaRegistry = SchemaRegistryLister.get(ownerReference.getName());
+        if (schemaRegistry != null) {
+            enqueueSchemaRegistry(schemaRegistry);
         }
     }
 
