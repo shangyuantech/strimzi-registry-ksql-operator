@@ -2,6 +2,8 @@ package io.strimzi.operator.schemaregistry;
 
 import io.fabric8.kubernetes.api.model.Pod;
 import io.fabric8.kubernetes.api.model.PodList;
+import io.fabric8.kubernetes.api.model.Service;
+import io.fabric8.kubernetes.api.model.ServiceList;
 import io.fabric8.kubernetes.client.DefaultKubernetesClient;
 import io.fabric8.kubernetes.client.KubernetesClient;
 import io.fabric8.kubernetes.client.KubernetesClientException;
@@ -30,12 +32,13 @@ public class OperatorMain {
                 namespace = "default";
             }
 
+            OperatorConfig operatorConfig = OperatorConfig.fromMap(System.getenv());
+
             logger.info("Using namespace : " + namespace);
-            CustomResourceDefinitionContext SchemaRegistryCustomResourceDefinitionContext = new CustomResourceDefinitionContext.Builder()
-                    .withVersion("v1beta1")
-                    .withScope("Namespaced")
-                    .withGroup("kafka.strimzi.io")
-                    .withPlural("schemaregistries")
+            CustomResourceDefinitionContext SchemaRegistryCustomResourceDefinitionContext =
+                    new CustomResourceDefinitionContext.Builder()
+                    .withVersion("v1beta1").withScope("Namespaced")
+                    .withGroup("kafka.strimzi.io").withPlural("schemaregistries")
                     .build();
 
             SharedInformerFactory informerFactory = client.informers();
@@ -45,18 +48,23 @@ public class OperatorMain {
                             SchemaRegistryCustomResourceDefinitionContext, SchemaRegistry.class, SchemaRegistryList.class,
                             DoneableSchemaRegistry.class);
 
+            // Deployment SharedIndexInformer
             SharedIndexInformer<Pod> podSharedIndexInformer = informerFactory
                     .sharedIndexInformerFor(Pod.class, PodList.class, 10 * 60 * 1000);
+            // Service SharedIndexInformer
+            SharedIndexInformer<Service> serviceSharedIndexInformer = informerFactory
+                    .sharedIndexInformerFor(Service.class, ServiceList.class, 10 * 60 * 1000);
+            // SchemaRegistry SharedIndexInformer
             SharedIndexInformer<SchemaRegistry> SchemaRegistrySharedIndexInformer = informerFactory
                     .sharedIndexInformerForCustomResource(
                             SchemaRegistryCustomResourceDefinitionContext, SchemaRegistry.class,
                             SchemaRegistryList.class, 10 * 60 * 1000);
 
             SchemaRegistryController schemaRegistryController = new SchemaRegistryController(
-                    client, SchemaRegistryClient, podSharedIndexInformer,
-                    SchemaRegistrySharedIndexInformer, namespace);
-
+                    client, SchemaRegistryClient, podSharedIndexInformer, serviceSharedIndexInformer,
+                    SchemaRegistrySharedIndexInformer, namespace, operatorConfig);
             schemaRegistryController.create();
+
             informerFactory.startAllRegisteredInformers();
             informerFactory.addSharedInformerEventListener(exception ->
                     logger.error("Exception occurred, but caught", exception));

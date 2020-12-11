@@ -26,9 +26,15 @@ spec:
               value: '120000'
             - name: STRIMZI_OPERATION_TIMEOUT_MS
               value: '300000'
-            - name: STRIMZI_DEFAULT_SCHEMA_REGISTRY_IMAGE
+            - name: STRIMZI_SCHEMA_REGISTRY_IMAGE
               value: |
                 2.5.0=confluentinc/cp-schema-registry:5.5.0
                 2.6.0=confluentinc/cp-schema-registry:5.6.0
+            - name: STRIMZI_DEFAULT_KSQLDB_SERVER_IMAGE
+              value: |
+                2.5.0=confluentinc/cp-ksqldb-server:5.5.0
+                2.6.0=confluentinc/cp-ksqldb-server:5.6.0
             - name: STRIMZI_LOG_LEVEL
-              value: INFO
+              value: 'INFO'
+            - name: STRIMZI_IMAGE_PULL_POLICY
+              value: 'ifnotpresent'

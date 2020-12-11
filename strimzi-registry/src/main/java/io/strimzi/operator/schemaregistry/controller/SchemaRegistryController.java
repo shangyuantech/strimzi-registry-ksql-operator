@@ -3,6 +3,7 @@ package io.strimzi.operator.schemaregistry.controller;
 import io.fabric8.kubernetes.api.model.OwnerReference;
 import io.fabric8.kubernetes.api.model.Pod;
 import io.fabric8.kubernetes.api.model.PodBuilder;
+import io.fabric8.kubernetes.api.model.Service;
 import io.fabric8.kubernetes.client.KubernetesClient;
 import io.fabric8.kubernetes.client.dsl.MixedOperation;
 import io.fabric8.kubernetes.client.dsl.Resource;
@@ -10,6 +11,7 @@ import io.fabric8.kubernetes.client.informers.ResourceEventHandler;
 import io.fabric8.kubernetes.client.informers.SharedIndexInformer;
 import io.fabric8.kubernetes.client.informers.cache.Cache;
 import io.fabric8.kubernetes.client.informers.cache.Lister;
+import io.strimzi.operator.schemaregistry.OperatorConfig;
 import io.strimzi.operator.schemaregistry.crd.DoneableSchemaRegistry;
 import io.strimzi.operator.schemaregistry.crd.SchemaRegistry;
 import io.strimzi.operator.schemaregistry.crd.SchemaRegistryList;
@@ -22,6 +24,7 @@ import java.util.Objects;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 
+import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -31,24 +34,34 @@ public class SchemaRegistryController {
     private final BlockingQueue<String> workqueue;
     private final SharedIndexInformer<SchemaRegistry> srInformer;
     private final SharedIndexInformer<Pod> podInformer;
-    private final Lister<SchemaRegistry> SchemaRegistryLister;
+    private final SharedIndexInformer<Service> serviceInformer;
+    private final Lister<SchemaRegistry> schemaRegistryLister;
     private final Lister<Pod> podLister;
+    private final Lister<Service> serviceLister;
     private final KubernetesClient kubernetesClient;
     private final MixedOperation<SchemaRegistry, SchemaRegistryList, DoneableSchemaRegistry, Resource<SchemaRegistry, DoneableSchemaRegistry>> srClient;
-    public static final Logger logger = LoggerFactory.getLogger(SchemaRegistryController.class.getName());
+    private final OperatorConfig operatorConfig;
+
     public static final String APP_LABEL = "app";
 
+    public static final Logger logger = LoggerFactory.getLogger(SchemaRegistryController.class.getName());
+
     public SchemaRegistryController(KubernetesClient kubernetesClient,
-                                    MixedOperation<SchemaRegistry, SchemaRegistryList, DoneableSchemaRegistry, Resource<SchemaRegistry, DoneableSchemaRegistry>> SchemaRegistryClient,
-                                    SharedIndexInformer<Pod> podInformer, SharedIndexInformer<SchemaRegistry> srInformer,
-                                    String namespace) {
+                                    MixedOperation<SchemaRegistry, SchemaRegistryList, DoneableSchemaRegistry, Resource<SchemaRegistry, DoneableSchemaRegistry>> schemaRegistryClient,
+                                    SharedIndexInformer<Pod> podInformer,
+                                    SharedIndexInformer<Service> serviceInformer,
+                                    SharedIndexInformer<SchemaRegistry> srInformer,
+                                    String namespace, OperatorConfig operatorConfig) {
         this.kubernetesClient = kubernetesClient;
-        this.srClient = SchemaRegistryClient;
-        this.SchemaRegistryLister = new Lister<>(srInformer.getIndexer(), namespace);
+        this.srClient = schemaRegistryClient;
+        this.schemaRegistryLister = new Lister<>(srInformer.getIndexer(), namespace);
         this.srInformer = srInformer;
         this.podLister = new Lister<>(podInformer.getIndexer(), namespace);
+        this.serviceLister = new Lister<>(serviceInformer.getIndexer(), namespace);
         this.podInformer = podInformer;
+        this.serviceInformer = serviceInformer;
         this.workqueue = new ArrayBlockingQueue<>(1024);
+        this.operatorConfig = operatorConfig;
     }
 
     public void create() {
@@ -89,11 +102,68 @@ public class SchemaRegistryController {
                 // Do nothing
             }
         });
+
+        serviceInformer.addEventHandler(new ResourceEventHandler<Service>() {
+            @Override
+            public void onAdd(Service service) {
+                //todo handle service
+            }
+
+            @Override
+            public void onUpdate(Service oldService, Service newService) {
+                if (oldService.getMetadata().getResourceVersion().equals(newService.getMetadata().getResourceVersion())) {
+                    return;
+                }
+                //todo handle service
+            }
+
+            @Override
+            public void onDelete(Service pod, boolean b) {
+                // Do nothing
+            }
+        });
+    }
+
+    private void enqueueSchemaRegistry(SchemaRegistry SchemaRegistry) {
+        logger.info("enqueueSchemaRegistry (" + SchemaRegistry.getMetadata().getName() + ")");
+        String key = Cache.metaNamespaceKeyFunc(SchemaRegistry);
+        logger.info("Going to enqueue key {}", key);
+
+        if (StringUtils.isNoneEmpty(key)) {
+            logger.info("Adding item to workqueue");
+            workqueue.add(key);
+        }
+    }
+
+    // ---------------- handle pod ----------------
+    private void handlePodObject(Pod pod) {
+        logger.debug("handlePodObject({})", pod.getMetadata().getName());
+        OwnerReference ownerReference = getControllerOf(pod);
+        Objects.requireNonNull(ownerReference);
+
+        if (!ownerReference.getKind().equalsIgnoreCase("SchemaRegistry")) {
+            return;
+        }
+
+        SchemaRegistry schemaRegistry = schemaRegistryLister.get(ownerReference.getName());
+        if (schemaRegistry != null) {
+            enqueueSchemaRegistry(schemaRegistry);
+        }
+    }
+
+    private OwnerReference getControllerOf(Pod pod) {
+        List<OwnerReference> ownerReferences = pod.getMetadata().getOwnerReferences();
+        for (OwnerReference ownerReference : ownerReferences) {
+            if (ownerReference.getController().equals(Boolean.TRUE)) {
+                return ownerReference;
+            }
+        }
+        return null;
     }
 
     public void run() {
         logger.info("Starting SchemaRegistry Controller");
-        while (!podInformer.hasSynced() || !srInformer.hasSynced()) {
+        while (!podInformer.hasSynced() || !srInformer.hasSynced() || !serviceInformer.hasSynced()) {
             // Wait till Informer syncs
         }
 
@@ -113,7 +183,7 @@ public class SchemaRegistryController {
 
                 // Get the SchemaRegistry resource's name from key which is in format namespace/name
                 String name = key.split("/")[1];
-                SchemaRegistry schemaRegistry = SchemaRegistryLister.get(key.split("/")[1]);
+                SchemaRegistry schemaRegistry = schemaRegistryLister.get(key.split("/")[1]);
                 if (schemaRegistry == null) {
                     logger.error(String.format("SchemaRegistry %s in work queue no longer exists", name));
                     return;
@@ -179,29 +249,6 @@ public class SchemaRegistryController {
         return podNames;
     }
 
-    private void enqueueSchemaRegistry(SchemaRegistry SchemaRegistry) {
-        logger.info("enqueueSchemaRegistry(" + SchemaRegistry.getMetadata().getName() + ")");
-        String key = Cache.metaNamespaceKeyFunc(SchemaRegistry);
-        logger.info("Going to enqueue key {}", key);
-        if (key != null && !key.isEmpty()) {
-            logger.info("Adding item to workqueue");
-            workqueue.add(key);
-        }
-    }
-
-    private void handlePodObject(Pod pod) {
-        logger.debug("handlePodObject({})", pod.getMetadata().getName());
-        OwnerReference ownerReference = getControllerOf(pod);
-        Objects.requireNonNull(ownerReference);
-        if (!ownerReference.getKind().equalsIgnoreCase("SchemaRegistry")) {
-            return;
-        }
-        SchemaRegistry schemaRegistry = SchemaRegistryLister.get(ownerReference.getName());
-        if (schemaRegistry != null) {
-            enqueueSchemaRegistry(schemaRegistry);
-        }
-    }
-
     private Pod createNewPod(SchemaRegistry SchemaRegistry) {
         return new PodBuilder()
                 .withNewMetadata()
@@ -219,15 +266,5 @@ public class SchemaRegistryController {
                 .addNewContainer().withName("busybox").withImage("busybox").withCommand("sleep", "3600").endContainer()
                 .endSpec()
                 .build();
-    }
-
-    private OwnerReference getControllerOf(Pod pod) {
-        List<OwnerReference> ownerReferences = pod.getMetadata().getOwnerReferences();
-        for (OwnerReference ownerReference : ownerReferences) {
-            if (ownerReference.getController().equals(Boolean.TRUE)) {
-                return ownerReference;
-            }
-        }
-        return null;
     }
 }
