@@ -5,7 +5,7 @@
     <modelVersion>4.0.0</modelVersion>
 
     <groupId>io.strimzi</groupId>
-    <artifactId>strimzi-registry-kql-operator</artifactId>
+    <artifactId>strimzi-registry-ksql-operator</artifactId>
     <packaging>pom</packaging>
     <version>0.20.0</version>
     <modules>
