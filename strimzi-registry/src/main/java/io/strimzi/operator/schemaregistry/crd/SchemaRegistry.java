@@ -6,6 +6,7 @@ import io.fabric8.kubernetes.client.CustomResource;
 public class SchemaRegistry extends CustomResource {
 
     private SchemaRegistrySpec spec;
+
     private SchemaRegistryStatus status;
 
     @Override

@@ -19,7 +19,7 @@ spec:
     type: nodeport
 #    loadbalanceIp: ""
     nodeport: 30881
-#  template:
-#    pod:
-#      imagePullSecrets:
-#      - name: pullsecret
+  template:
+    pod:
+      imagePullSecrets:
+      - pullsecret
