@@ -1,6 +1,9 @@
 package io.strimzi.operator;
 
 import io.fabric8.kubernetes.api.model.*;
+import io.fabric8.kubernetes.api.model.apiextensions.v1beta1.CustomResourceDefinition;
+import io.fabric8.kubernetes.api.model.apiextensions.v1beta1.CustomResourceDefinitionBuilder;
+import io.fabric8.kubernetes.api.model.apiextensions.v1beta1.CustomResourceSubresourceStatus;
 import io.fabric8.kubernetes.client.*;
 import io.fabric8.kubernetes.client.dsl.MixedOperation;
 import io.fabric8.kubernetes.client.dsl.Resource;
@@ -29,7 +32,7 @@ public class Operator<T extends HasMetadata, L extends KubernetesResourceList<T>
 
     private final SharedInformerFactory informerFactory;
 
-    private final MixedOperation<T, L, D, Resource<T, D>> customClient;
+    private final MixedOperation<T, L, D, Resource<T, D>> mixedOperation;
 
     private final SharedIndexInformer<T> tSharedIndexInformer;
 
@@ -53,7 +56,7 @@ public class Operator<T extends HasMetadata, L extends KubernetesResourceList<T>
                         .withGroup(crdDef.getGroup())
                         .withPlural(crdDef.getPlural())
                         .build();
-        this.customClient = client.customResources(context, t, l, d);
+        this.mixedOperation = client.customResources(context, t, l, d);
         this.informerFactory = client.informers();
         this.tSharedIndexInformer = informerFactory
                 .sharedIndexInformerForCustomResource(context, t, l, 10 * 60 * 1000);
@@ -64,6 +67,7 @@ public class Operator<T extends HasMetadata, L extends KubernetesResourceList<T>
     public void registryOperator(DefaultController<T> controller) {
         controller.setNamespace(namespace);
         controller.setKubernetesClient(client);
+        controller.setMixedOperation(mixedOperation);
         controller.settInformer(tSharedIndexInformer);
         controller.setPodInformer(podSharedIndexInformer);
         controller.setCrdDef(crdDef);

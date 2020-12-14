@@ -18,6 +18,8 @@ spec:
               properties:
                 replicas:
                   type: integer
+  subresources:
+    status: {}
   names:
     kind: SchemaRegistry
     plural: schemaregistries

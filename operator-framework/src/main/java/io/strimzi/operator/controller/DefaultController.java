@@ -1,9 +1,9 @@
 package io.strimzi.operator.controller;
 
-import io.fabric8.kubernetes.api.model.HasMetadata;
-import io.fabric8.kubernetes.api.model.OwnerReference;
-import io.fabric8.kubernetes.api.model.Pod;
+import io.fabric8.kubernetes.api.model.*;
 import io.fabric8.kubernetes.client.KubernetesClient;
+import io.fabric8.kubernetes.client.dsl.MixedOperation;
+import io.fabric8.kubernetes.client.dsl.Resource;
 import io.fabric8.kubernetes.client.informers.ResourceEventHandler;
 import io.fabric8.kubernetes.client.informers.SharedIndexInformer;
 import io.fabric8.kubernetes.client.informers.cache.Cache;
@@ -25,11 +25,12 @@ public abstract class DefaultController<T extends HasMetadata> {
 
     protected String namespace;
     protected BlockingQueue<Request> workQueue = new ArrayBlockingQueue<>(1024);
+    protected KubernetesClient client;
+    protected MixedOperation<T, ? extends KubernetesResourceList<T>, ? extends Doneable<T>,? extends Resource<T, ? extends Doneable<T>>> mixedOperation;
     protected SharedIndexInformer<T> tInformer;
     protected SharedIndexInformer<Pod> podInformer;
     protected Lister<T> tLister;
     protected Lister<Pod> podLister;
-    protected KubernetesClient client;
     protected CRDDef crdDef;
     protected OperatorConfig operatorConfig;
 
@@ -75,6 +76,10 @@ public abstract class DefaultController<T extends HasMetadata> {
 
     public void setPodInformer(SharedIndexInformer<Pod> podInformer) {
         this.podInformer = podInformer;
+    }
+
+    public void setMixedOperation(MixedOperation<T, ? extends KubernetesResourceList<T>, ? extends Doneable<T>,? extends Resource<T, ? extends Doneable<T>>> mixedOperation) {
+        this.mixedOperation = mixedOperation;
     }
 
     public void create() {

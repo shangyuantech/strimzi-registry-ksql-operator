@@ -4,6 +4,7 @@ import io.fabric8.kubernetes.api.model.Pod;
 import io.fabric8.kubernetes.api.model.PodBuilder;
 import io.strimzi.operator.controller.DefaultController;
 import io.strimzi.operator.schemaregistry.crd.SchemaRegistry;
+import io.strimzi.operator.schemaregistry.crd.SchemaRegistryStatus;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -39,6 +40,14 @@ public class SchemaRegistryCustomController extends DefaultController<SchemaRegi
             String podName = pods.remove(0);
             client.pods().inNamespace(schemaRegistry.getMetadata().getNamespace()).withName(podName).delete();
         }
+        
+        SchemaRegistryStatus status = new SchemaRegistryStatus();
+        status.setAvailableReplicas(schemaRegistry.getSpec().getReplicas());
+        logger.debug("update status {}", status);
+        schemaRegistry.setStatus(status);
+        mixedOperation.inNamespace(schemaRegistry.getMetadata().getNamespace())
+                .withName(schemaRegistry.getMetadata().getName())
+                .updateStatus(schemaRegistry);
     }
 
     private void createPods(int numberOfPods, SchemaRegistry schemaRegistry) {
