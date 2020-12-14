@@ -9,15 +9,13 @@
     </parent>
     <modelVersion>4.0.0</modelVersion>
 
-    <artifactId>strimzi-registry</artifactId>
+    <artifactId>operator-framework</artifactId>
 
     <dependencies>
         <dependency>
-            <groupId>io.strimzi</groupId>
-            <artifactId>operator-framework</artifactId>
-            <version>0.20.0</version>
-            <scope>compile</scope>
+            <groupId>org.apache.commons</groupId>
+            <artifactId>commons-lang3</artifactId>
+            <version>3.10</version>
         </dependency>
     </dependencies>
-
 </project>

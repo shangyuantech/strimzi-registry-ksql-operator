@@ -1,4 +1,4 @@
-package io.strimzi.operator.schemaregistry.model;
+package io.strimzi.operator.model;
 
 /**
  * Enum for ImagePullPolicy types. Supports the 3 types supported in Kubernetes / OpenShift:

@@ -2,7 +2,7 @@ package io.strimzi.operator.schemaregistry.crd;
 
 import com.fasterxml.jackson.databind.JsonDeserializer;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
-import io.fabric8.kubernetes.api.model.KubernetesResource;
+import io.strimzi.operator.resource.DefaultSpecResource;
 
 import java.util.List;
 import java.util.Map;
@@ -10,7 +10,7 @@ import java.util.Map;
 @JsonDeserialize(
         using = JsonDeserializer.None.class
 )
-public class SchemaRegistrySpec implements KubernetesResource {
+public class SchemaRegistrySpec extends DefaultSpecResource {
 
     private String version;
 

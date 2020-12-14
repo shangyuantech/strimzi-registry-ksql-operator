@@ -11,7 +11,7 @@ import io.fabric8.kubernetes.client.informers.ResourceEventHandler;
 import io.fabric8.kubernetes.client.informers.SharedIndexInformer;
 import io.fabric8.kubernetes.client.informers.cache.Cache;
 import io.fabric8.kubernetes.client.informers.cache.Lister;
-import io.strimzi.operator.schemaregistry.OperatorConfig;
+import io.strimzi.operator.config.OperatorConfig;
 import io.strimzi.operator.schemaregistry.crd.DoneableSchemaRegistry;
 import io.strimzi.operator.schemaregistry.crd.SchemaRegistry;
 import io.strimzi.operator.schemaregistry.crd.SchemaRegistryList;

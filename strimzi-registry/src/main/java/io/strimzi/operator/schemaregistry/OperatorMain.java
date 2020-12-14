@@ -12,6 +12,7 @@ import io.fabric8.kubernetes.client.dsl.Resource;
 import io.fabric8.kubernetes.client.dsl.base.CustomResourceDefinitionContext;
 import io.fabric8.kubernetes.client.informers.SharedIndexInformer;
 import io.fabric8.kubernetes.client.informers.SharedInformerFactory;
+import io.strimzi.operator.config.OperatorConfig;
 import io.strimzi.operator.schemaregistry.controller.SchemaRegistryController;
 import io.strimzi.operator.schemaregistry.crd.DoneableSchemaRegistry;
 import io.strimzi.operator.schemaregistry.crd.SchemaRegistry;
@@ -25,14 +26,14 @@ public class OperatorMain {
     public static final Logger logger = LoggerFactory.getLogger(OperatorMain.class.getName());
 
     public static void main(String args[]) {
+        OperatorConfig operatorConfig = OperatorConfig.fromMap(System.getenv());
+
         try (KubernetesClient client = new DefaultKubernetesClient()) {
             String namespace = client.getNamespace();
             if (namespace == null) {
                 logger.warn("No namespace found via config, assuming default.");
                 namespace = "default";
             }
-
-            OperatorConfig operatorConfig = OperatorConfig.fromMap(System.getenv());
 
             logger.info("Using namespace : " + namespace);
             CustomResourceDefinitionContext SchemaRegistryCustomResourceDefinitionContext =

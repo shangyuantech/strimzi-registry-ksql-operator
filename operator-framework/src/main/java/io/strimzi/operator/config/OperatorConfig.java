@@ -1,9 +1,9 @@
-package io.strimzi.operator.schemaregistry;
+package io.strimzi.operator.config;
 
 import io.fabric8.kubernetes.api.model.LocalObjectReference;
 import io.fabric8.kubernetes.api.model.LocalObjectReferenceBuilder;
-import io.strimzi.operator.schemaregistry.exception.InvalidConfigurationException;
-import io.strimzi.operator.schemaregistry.model.ImagePullPolicy;
+import io.strimzi.operator.exception.InvalidConfigurationException;
+import io.strimzi.operator.model.ImagePullPolicy;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

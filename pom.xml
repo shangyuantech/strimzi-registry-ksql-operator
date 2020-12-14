@@ -10,6 +10,7 @@
     <version>0.20.0</version>
     <modules>
         <module>strimzi-registry</module>
+        <module>operator-framework</module>
     </modules>
 
     <properties>

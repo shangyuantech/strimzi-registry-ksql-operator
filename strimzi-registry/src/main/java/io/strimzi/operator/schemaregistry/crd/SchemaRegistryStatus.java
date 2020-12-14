@@ -2,12 +2,12 @@ package io.strimzi.operator.schemaregistry.crd;
 
 import com.fasterxml.jackson.databind.JsonDeserializer;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
-import io.fabric8.kubernetes.api.model.KubernetesResource;
+import io.strimzi.operator.resource.DefaultStatusResource;
 
 @JsonDeserialize(
         using = JsonDeserializer.None.class
 )
-public class SchemaRegistryStatus implements KubernetesResource {
+public class SchemaRegistryStatus extends DefaultStatusResource {
 
     private int availableReplicas;
 

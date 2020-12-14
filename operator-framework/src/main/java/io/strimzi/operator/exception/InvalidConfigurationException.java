@@ -1,4 +1,4 @@
-package io.strimzi.operator.schemaregistry.exception;
+package io.strimzi.operator.exception;
 
 public class InvalidConfigurationException extends RuntimeException  {
 
