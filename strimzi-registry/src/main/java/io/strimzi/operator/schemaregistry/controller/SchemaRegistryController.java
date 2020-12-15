@@ -2,7 +2,9 @@ package io.strimzi.operator.schemaregistry.controller;
 
 import io.fabric8.kubernetes.api.model.*;
 import io.fabric8.kubernetes.api.model.apps.Deployment;
+import io.fabric8.kubernetes.api.model.apps.DoneableDeployment;
 import io.fabric8.kubernetes.client.KubernetesClient;
+import io.fabric8.kubernetes.client.dsl.RollableScalableResource;
 import io.fabric8.kubernetes.client.dsl.ServiceResource;
 import io.fabric8.kubernetes.client.utils.Serialization;
 import io.javaoperatorsdk.operator.api.*;
@@ -46,6 +48,18 @@ public class SchemaRegistryController implements ResourceController<SchemaRegist
 
     @Override
     public DeleteControl deleteResource(SchemaRegistry schemaRegistry, Context<SchemaRegistry> context) {
+
+        log.info("Deleting Deployment {}", deploymentName(schemaRegistry));
+        RollableScalableResource<Deployment, DoneableDeployment> deployment =
+                kubernetesClient
+                        .apps()
+                        .deployments()
+                        .inNamespace(schemaRegistry.getMetadata().getNamespace())
+                        .withName(deploymentName(schemaRegistry));
+        if (deployment.get() != null) {
+            deployment.cascading(true).delete();
+        }
+
         log.info("Deleting Service {}", serviceName(schemaRegistry));
         ServiceResource<Service, DoneableService> service =
                 kubernetesClient
@@ -55,6 +69,7 @@ public class SchemaRegistryController implements ResourceController<SchemaRegist
         if (service.get() != null) {
             service.delete();
         }
+
         return DeleteControl.DEFAULT_DELETE;
     }
 
