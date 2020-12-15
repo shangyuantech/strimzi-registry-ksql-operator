@@ -1,13 +1,6 @@
 package io.strimzi.operator.schemaregistry.crd;
 
-import com.fasterxml.jackson.databind.JsonDeserializer;
-import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
-import io.strimzi.operator.resource.DefaultStatusResource;
-
-@JsonDeserialize(
-        using = JsonDeserializer.None.class
-)
-public class SchemaRegistryStatus extends DefaultStatusResource {
+public class SchemaRegistryStatus {
 
     private int availableReplicas;
 

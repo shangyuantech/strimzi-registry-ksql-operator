@@ -12,11 +12,17 @@
     <artifactId>strimzi-registry</artifactId>
 
     <dependencies>
+
         <dependency>
             <groupId>io.strimzi</groupId>
             <artifactId>operator-framework</artifactId>
             <version>0.20.0</version>
-            <scope>compile</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>org.takes</groupId>
+            <artifactId>takes</artifactId>
+            <version>1.19</version>
         </dependency>
     </dependencies>
 

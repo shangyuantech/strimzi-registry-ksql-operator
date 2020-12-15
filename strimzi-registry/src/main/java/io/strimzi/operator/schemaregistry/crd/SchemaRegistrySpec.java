@@ -1,16 +1,9 @@
 package io.strimzi.operator.schemaregistry.crd;
 
-import com.fasterxml.jackson.databind.JsonDeserializer;
-import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
-import io.strimzi.operator.resource.DefaultSpecResource;
-
 import java.util.List;
 import java.util.Map;
 
-@JsonDeserialize(
-        using = JsonDeserializer.None.class
-)
-public class SchemaRegistrySpec extends DefaultSpecResource {
+public class SchemaRegistrySpec {
 
     private String version;
 
