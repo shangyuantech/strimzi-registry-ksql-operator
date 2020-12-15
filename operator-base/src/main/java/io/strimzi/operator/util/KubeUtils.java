@@ -52,7 +52,10 @@ public class KubeUtils {
                         } else if (!ValidationUtils.isObjectSame(service.getSpec().getLoadBalancerSourceRanges(),
                                 old.getSpec().getLoadBalancerSourceRanges())) {
                             change = true;
+                        } else if (!newPort.getNodePort().equals(oldPort.getNodePort())) {
+                            change = true;
                         }
+                        break;
                     case NodePort:
                         if (!newPort.getNodePort().equals(oldPort.getNodePort())) {
                             change = true;
