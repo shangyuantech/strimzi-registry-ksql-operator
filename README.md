@@ -25,7 +25,7 @@ spec:
     kafkastore.timeout.ms: '12000'
   otherProps:
     TZ: 'Asia/Shanghai'
-  image: confluentinc/cp-schema-registry:5.6.0
+  image: confluentinc/cp-schema-registry:6.0.0
   external:
     type: nodeport
 #    loadbalanceIp: ""
