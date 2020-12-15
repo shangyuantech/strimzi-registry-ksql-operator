@@ -23,7 +23,7 @@ public class OperatorConfig {
 
     public static final String STRIMZI_SCHEMA_REGISTRY_IMAGE = "STRIMZI_SCHEMA_REGISTRY_IMAGE";
     public static final String STRIMZI_DEFAULT_SCHEMA_REGISTRY_IMAGE = "2.5.0=confluentinc/cp-schema-registry:5.5.0\n" +
-            "2.6.0=confluentinc/cp-schema-registry:5.6.0";
+            "2.6.0=confluentinc/cp-schema-registry:6.0.0";
 
     public static final String SCHEMA_REGISTRY_KAFKASTORE_BOOTSTRAP_SERVERS = "SCHEMA_REGISTRY_KAFKASTORE_BOOTSTRAP_SERVERS";
 
