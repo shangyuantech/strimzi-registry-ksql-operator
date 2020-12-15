@@ -15,9 +15,9 @@ public class OperatorConfig {
 
     public static final Logger logger = LoggerFactory.getLogger(OperatorConfig.class);
 
+    public static final String STRIMZI_CLUSTER_OPERATOR_NAME = "strimzi-registry-ksql-operator";
+
     public static final String STRIMZI_NAMESPACE = "STRIMZI_NAMESPACE";
-    public static final String STRIMZI_FULL_RECONCILIATION_INTERVAL_MS = "STRIMZI_FULL_RECONCILIATION_INTERVAL_MS";
-    public static final String STRIMZI_OPERATION_TIMEOUT_MS = "STRIMZI_OPERATION_TIMEOUT_MS";
     public static final String STRIMZI_IMAGE_PULL_POLICY = "STRIMZI_IMAGE_PULL_POLICY";
     public static final String STRIMZI_IMAGE_PULL_SECRETS = "STRIMZI_IMAGE_PULL_SECRETS";
 
@@ -25,40 +25,33 @@ public class OperatorConfig {
     public static final String STRIMZI_DEFAULT_SCHEMA_REGISTRY_IMAGE = "2.5.0=confluentinc/cp-schema-registry:5.5.0\n" +
             "2.6.0=confluentinc/cp-schema-registry:5.6.0";
 
-    public static final long DEFAULT_FULL_RECONCILIATION_INTERVAL_MS = 120_000;
-    public static final long DEFAULT_OPERATION_TIMEOUT_MS = 300_000;
+    public static final String SCHEMA_REGISTRY_KAFKASTORE_BOOTSTRAP_SERVERS = "SCHEMA_REGISTRY_KAFKASTORE_BOOTSTRAP_SERVERS";
+
 
     private final Optional<String> namespaces;
-    private final long reconciliationInterval;
-    private final long operationTimeout;
-    private final Optional<ImagePullPolicy> imagePullPolicy;
-    private final Optional<List<LocalObjectReference>> imagePullSecrets;
+    private final ImagePullPolicy imagePullPolicy;
+    private final List<LocalObjectReference> imagePullSecrets;
     private final HashMap<String, String> schemaRegistryImage;
 
     public static OperatorConfig fromMap(Map<String, String> map) {
         Optional<String> namespaces = Optional.ofNullable(map.get(STRIMZI_NAMESPACE));
-        long reconciliationInterval = parseReconciliationInerval(map.get(STRIMZI_FULL_RECONCILIATION_INTERVAL_MS));
-        long operationTimeout = parseOperationTimeout(map.get(STRIMZI_OPERATION_TIMEOUT_MS));
-        Optional<ImagePullPolicy> imagePullPolicy = parseImagePullPolicy(map.get(STRIMZI_IMAGE_PULL_POLICY));
-        Optional<List<LocalObjectReference>> imagePullSecrets = parseImagePullSecrets(map.get(STRIMZI_IMAGE_PULL_SECRETS));
+        ImagePullPolicy imagePullPolicy = parseImagePullPolicy(map.get(STRIMZI_IMAGE_PULL_POLICY));
+        List<LocalObjectReference> imagePullSecrets = parseImagePullSecrets(map.get(STRIMZI_IMAGE_PULL_SECRETS));
         HashMap<String, String> schemaRegistryImage = parseSchemaRegistryImage(map.get(STRIMZI_SCHEMA_REGISTRY_IMAGE));
 
-        return new OperatorConfig(namespaces, reconciliationInterval, operationTimeout,
-                imagePullPolicy, imagePullSecrets, schemaRegistryImage);
+        return new OperatorConfig(namespaces, imagePullPolicy, imagePullSecrets, schemaRegistryImage);
     }
 
-    public OperatorConfig(Optional<String> namespaces, long reconciliationInterval, long operationTimeout,
-                          Optional<ImagePullPolicy> imagePullPolicy, Optional<List<LocalObjectReference>> imagePullSecrets,
+    public OperatorConfig(Optional<String> namespaces, ImagePullPolicy imagePullPolicy,
+                          List<LocalObjectReference> imagePullSecrets,
                           HashMap<String, String> schemaRegistryImage) {
         this.namespaces = namespaces;
-        this.reconciliationInterval = reconciliationInterval;
-        this.operationTimeout = operationTimeout;
         this.imagePullPolicy = imagePullPolicy;
         this.imagePullSecrets = imagePullSecrets;
         this.schemaRegistryImage = schemaRegistryImage;
     }
 
-    private static Optional<ImagePullPolicy> parseImagePullPolicy(String imagePullPolicyEnvVar) {
+    private static ImagePullPolicy parseImagePullPolicy(String imagePullPolicyEnvVar) {
         ImagePullPolicy imagePullPolicy = null;
 
         if (StringUtils.isNotEmpty(imagePullPolicyEnvVar)) {
@@ -77,12 +70,14 @@ public class OperatorConfig {
                             + " is not a valid " + STRIMZI_IMAGE_PULL_POLICY + " value. " +
                             STRIMZI_IMAGE_PULL_POLICY + " can have one of the following values: Always, IfNotPresent, Never.");
             }
+        } else {
+            imagePullPolicy = ImagePullPolicy.IFNOTPRESENT;
         }
 
-        return Optional.ofNullable(imagePullPolicy);
+        return imagePullPolicy;
     }
 
-    private static Optional<List<LocalObjectReference>> parseImagePullSecrets(String imagePullSecretList) {
+    private static List<LocalObjectReference> parseImagePullSecrets(String imagePullSecretList) {
         List<LocalObjectReference> imagePullSecrets = null;
 
         if (StringUtils.isNoneEmpty(imagePullSecretList)) {
@@ -94,29 +89,11 @@ public class OperatorConfig {
                 throw new InvalidConfigurationException(STRIMZI_IMAGE_PULL_SECRETS
                         + " is not a valid list of secret names");
             }
+        } else {
+            imagePullSecrets = new ArrayList<>();
         }
 
-        return Optional.ofNullable(imagePullSecrets);
-    }
-
-    private static long parseReconciliationInerval(String reconciliationIntervalEnvVar) {
-        long reconciliationInterval = DEFAULT_FULL_RECONCILIATION_INTERVAL_MS;
-
-        if (StringUtils.isNoneEmpty(reconciliationIntervalEnvVar)) {
-            reconciliationInterval = Long.parseLong(reconciliationIntervalEnvVar);
-        }
-
-        return reconciliationInterval;
-    }
-
-    private static long parseOperationTimeout(String operationTimeoutEnvVar) {
-        long operationTimeout = DEFAULT_OPERATION_TIMEOUT_MS;
-
-        if (StringUtils.isNoneEmpty(operationTimeoutEnvVar)) {
-            operationTimeout = Long.parseLong(operationTimeoutEnvVar);
-        }
-
-        return operationTimeout;
+        return imagePullSecrets;
     }
 
     private static HashMap<String, String> parseSchemaRegistryImage(String schemaRegistryImage) {
@@ -136,5 +113,25 @@ public class OperatorConfig {
         }
 
         return schemaRegistryImageMap;
+    }
+
+    public Optional<String> getNamespaces() {
+        return namespaces;
+    }
+
+    public ImagePullPolicy getImagePullPolicy() {
+        return imagePullPolicy;
+    }
+
+    public List<LocalObjectReference> getImagePullSecrets() {
+        return imagePullSecrets;
+    }
+
+    public HashMap<String, String> getSchemaRegistryImages() {
+        return schemaRegistryImage;
+    }
+
+    public String getSchemaRegistryImage(String version) {
+        return schemaRegistryImage.get(version);
     }
 }

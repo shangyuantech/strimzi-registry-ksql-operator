@@ -1,0 +1,25 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ""
+spec:
+  selector:
+    matchLabels:
+      app: ""
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: ""
+    spec:
+      containers:
+        - name: cp-schema-registry
+          image: ""
+          ports:
+            - containerPort: 8081
+          env:
+            - name: SCHEMA_REGISTRY_HOST_NAME
+              valueFrom:
+                fieldRef:
+                  apiVersion: v1
+                  fieldPath: status.podIP

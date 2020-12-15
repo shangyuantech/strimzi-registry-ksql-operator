@@ -7,6 +7,7 @@ import io.fabric8.kubernetes.client.KubernetesClient;
 import io.javaoperatorsdk.operator.Operator;
 import java.io.IOException;
 
+import io.strimzi.operator.config.OperatorConfig;
 import io.strimzi.operator.schemaregistry.controller.SchemaRegistryController;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -25,7 +26,7 @@ public class SchemaRegistryOperator {
         Config config = new ConfigBuilder().withNamespace(null).build();
         KubernetesClient client = new DefaultKubernetesClient(config);
         Operator operator = new Operator(client);
-        operator.registerControllerForAllNamespaces(new SchemaRegistryController(client));
+        operator.registerControllerForAllNamespaces(new SchemaRegistryController(client, OperatorConfig.fromMap(System.getenv())));
 
         new FtBasic(new TkFork(new FkRegex("/health", "ALL GOOD!")), 8080).start(Exit.NEVER);
     }

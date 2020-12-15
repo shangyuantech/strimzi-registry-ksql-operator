@@ -26,9 +26,10 @@ public class SchemaRegistry extends CustomResource {
 
     @Override
     public String toString() {
-        return "SchemaRegistry{" +
-                "spec=" + spec +
-                ", status=" + status +
-                "} " + super.toString();
+        return "SchemaRegistry {" + "\n" +
+                "spec = " + spec + "\n" +
+                "status = " + status +
+                "} \n"
+                + super.toString();
     }
 }

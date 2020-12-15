@@ -2,8 +2,10 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: schema-registry-operator
+  labels:
+    app: schema-registry-operator
 spec:
-  replicas: 1  # do not change to >1
+  replicas: 1
   strategy:
     type: Recreate
   selector:
@@ -14,27 +16,56 @@ spec:
       labels:
         app: schema-registry-operator
     spec:
-      serviceAccountName: strimzi-registry-operator
+      serviceAccountName: schema-registry-operator
       containers:
         - name: schema-registry-operator
           image: strimzi/schema-registry-operator:0.20.0
           imagePullPolicy: Always
+          resources:
+            limits:
+              cpu: '1'
+              memory: 384Mi
+            requests:
+              cpu: 200m
+              memory: 384Mi
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: http
+              scheme: HTTP
+            initialDelaySeconds: 30
+            timeoutSeconds: 5
+            periodSeconds: 10
+            successThreshold: 1
+            failureThreshold: 3
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: http
+              scheme: HTTP
+            initialDelaySeconds: 30
+            timeoutSeconds: 5
+            periodSeconds: 10
+            successThreshold: 1
+            failureThreshold: 3
+          ports:
+            - name: http
+              containerPort: 8080
+              protocol: TCP
           env:
             - name: STRIMZI_NAMESPACE
               value: '*'
-            - name: STRIMZI_FULL_RECONCILIATION_INTERVAL_MS
-              value: '120000'
-            - name: STRIMZI_OPERATION_TIMEOUT_MS
-              value: '300000'
             - name: STRIMZI_SCHEMA_REGISTRY_IMAGE
               value: |
                 2.5.0=confluentinc/cp-schema-registry:5.5.0
-                2.6.0=confluentinc/cp-schema-registry:5.6.0
+                2.6.0=confluentinc/cp-schema-registry:6.0.0
             - name: STRIMZI_DEFAULT_KSQLDB_SERVER_IMAGE
               value: |
                 2.5.0=confluentinc/cp-ksqldb-server:5.5.0
-                2.6.0=confluentinc/cp-ksqldb-server:5.6.0
+                2.6.0=confluentinc/cp-ksqldb-server:6.0.0
             - name: STRIMZI_LOG_LEVEL
               value: 'INFO'
+            - name: STRIMZI_OPERATOR_LOG_LEVEL
+              value: 'DEBUG'
             - name: STRIMZI_IMAGE_PULL_POLICY
               value: 'ifnotpresent'

@@ -1,13 +1,17 @@
 package io.strimzi.operator.schemaregistry.crd;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
+
 import java.util.List;
 import java.util.Map;
 
+import static io.strimzi.operator.model.ServiceType.ClusterIP;
+
 public class SchemaRegistrySpec {
 
-    private String version;
+    private String version = "2.6.0";
 
-    private int replicas;
+    private Integer replicas = 1;
 
     private String bootstrapServers;
 
@@ -17,11 +21,18 @@ public class SchemaRegistrySpec {
 
     private String image;
 
-    public class External {
+    public static class External {
 
-        private String type;
+        private String type = ClusterIP.getName();
 
+        @JsonInclude(JsonInclude.Include.NON_EMPTY)
         private Integer nodeport;
+
+        @JsonInclude(JsonInclude.Include.NON_EMPTY)
+        private String loadbalanceIp;
+
+        @JsonInclude(JsonInclude.Include.NON_EMPTY)
+        private List<String> loadbalancerSourceRanges;
 
         public String getType() {
             return type;
@@ -39,18 +50,36 @@ public class SchemaRegistrySpec {
             this.nodeport = nodeport;
         }
 
+        public String getLoadbalanceIp() {
+            return loadbalanceIp;
+        }
+
+        public void setLoadbalanceIp(String loadbalanceIp) {
+            this.loadbalanceIp = loadbalanceIp;
+        }
+
+        public List<String> getLoadbalancerSourceRanges() {
+            return loadbalancerSourceRanges;
+        }
+
+        public void setLoadbalancerSourceRanges(List<String> loadbalancerSourceRanges) {
+            this.loadbalancerSourceRanges = loadbalancerSourceRanges;
+        }
+
         @Override
         public String toString() {
             return "External{" +
                     "type='" + type + '\'' +
                     ", nodeport=" + nodeport +
+                    ", loadbalanceIp='" + loadbalanceIp + '\'' +
+                    ", loadbalancerSourceRanges='" + loadbalancerSourceRanges + '\'' +
                     '}';
         }
     }
 
     private External external;
 
-    public class Template {
+    public static class Template {
 
         public class Pod {
 
@@ -92,11 +121,11 @@ public class SchemaRegistrySpec {
 
     private Template template;
 
-    public int getReplicas() {
+    public Integer getReplicas() {
         return replicas;
     }
 
-    public void setReplicas(int replicas) {
+    public void setReplicas(Integer replicas) {
         this.replicas = replicas;
     }
 
@@ -158,8 +187,8 @@ public class SchemaRegistrySpec {
 
     @Override
     public String toString() {
-        return "SchemaRegistrySpec{" +
-                "version='" + version + '\'' +
+        return "SchemaRegistrySpec{" + "\n" +
+                "   version='" + version + '\'' +
                 ", replicas=" + replicas +
                 ", bootstrapServers='" + bootstrapServers + '\'' +
                 ", config=" + config +

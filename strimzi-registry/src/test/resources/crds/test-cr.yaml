@@ -4,7 +4,7 @@ metadata:
   namespace: kafka
   name: example-schemaregistry
 spec:
-  version: 2.6.0
+  version: 2.5.0
   replicas: 1
   bootstrapServers: 'PLAINTEXT://kafka-brokers:9092'
   # 参考 https://docs.confluent.io/5.5.0/schema-registry/installation/config.html#sr-configuration-options
@@ -18,7 +18,8 @@ spec:
   external:
     type: nodeport
 #    loadbalanceIp: ""
-    nodeport: 30881
+#    loadbalancerSourceRanges: [""]
+    nodeport: 30882
   template:
     pod:
       imagePullSecrets:

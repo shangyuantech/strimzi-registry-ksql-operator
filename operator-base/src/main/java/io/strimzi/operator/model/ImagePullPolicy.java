@@ -20,4 +20,8 @@ public enum ImagePullPolicy {
     public String toString()    {
         return imagePullPolicy;
     }
+
+    public String getImagePullPolicy() {
+        return imagePullPolicy;
+    }
 }
