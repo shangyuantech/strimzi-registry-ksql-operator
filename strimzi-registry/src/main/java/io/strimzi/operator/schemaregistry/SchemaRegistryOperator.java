@@ -23,10 +23,13 @@ public class SchemaRegistryOperator {
     public static void main(String[] args) throws IOException {
         log.info("WebServer Operator starting!");
 
+        OperatorConfig operatorConfig = OperatorConfig.fromMap(System.getenv());
+        log.info("init Operator Config = \n {}", operatorConfig);
+
         Config config = new ConfigBuilder().withNamespace(null).build();
         KubernetesClient client = new DefaultKubernetesClient(config);
         Operator operator = new Operator(client);
-        operator.registerControllerForAllNamespaces(new SchemaRegistryController(client, OperatorConfig.fromMap(System.getenv())));
+        operator.registerControllerForAllNamespaces(new SchemaRegistryController(client, operatorConfig));
 
         new FtBasic(new TkFork(new FkRegex("/health", "ALL GOOD!")), 8080).start(Exit.NEVER);
     }

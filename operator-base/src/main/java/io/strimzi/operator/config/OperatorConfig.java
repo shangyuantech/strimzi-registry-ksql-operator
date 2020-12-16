@@ -136,4 +136,14 @@ public class OperatorConfig {
     public String getSchemaRegistryImage(String version) {
         return schemaRegistryImage.get(version);
     }
+
+    @Override
+    public String toString() {
+        return "OperatorConfig {" + "\n" +
+                "   namespaces=" + namespaces + "\n" +
+                "   imagePullPolicy=" + imagePullPolicy + "\n" +
+                "   imagePullSecrets=" + imagePullSecrets + "\n" +
+                "   schemaRegistryImage=" + schemaRegistryImage + "\n" +
+                '}';
+    }
 }
