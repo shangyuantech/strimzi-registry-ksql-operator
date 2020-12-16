@@ -25,10 +25,8 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 
 @Controller(crdName = "schemaregistries.kafka.strimzi.io")
 public class SchemaRegistryController implements ResourceController<SchemaRegistry> {
@@ -75,6 +73,14 @@ public class SchemaRegistryController implements ResourceController<SchemaRegist
 
     @Override
     public UpdateControl<SchemaRegistry> createOrUpdateResource(SchemaRegistry schemaRegistry, Context<SchemaRegistry> context) {
+        if (operatorConfig.getNamespaces().stream()
+                .noneMatch(n -> n.equals(OperatorConfig.STRIMZI_DEFAULT_NAMESPACE)
+                        || n.equals(schemaRegistry.getMetadata().getNamespace()))) {
+            log.warn("Schema Registry {} is not in operator namespace list {}",
+                    schemaRegistry.getMetadata().getName(), operatorConfig.getNamespaces());
+            return UpdateControl.noUpdate();
+        }
+
         log.debug("update {}", schemaRegistry);
         String namespace = schemaRegistry.getMetadata().getNamespace();
 
@@ -161,15 +167,42 @@ public class SchemaRegistryController implements ResourceController<SchemaRegist
         deployment.getSpec().getTemplate().getSpec().getContainers().get(0)
                 .setImagePullPolicy(operatorConfig.getImagePullPolicy().getImagePullPolicy());
 
-        // pull secret
-        List<LocalObjectReference> pullSecrets = operatorConfig.getImagePullSecrets();
-        SchemaRegistrySpec.Template template = schemaRegistry.getSpec().getTemplate();
-        List<String> secrets = template.getPod().getImagePullSecrets();
-        if (CollectionUtils.isNotEmpty(secrets)) {
-            secrets.forEach(secret -> pullSecrets.add(
-                    new LocalObjectReferenceBuilder().withName(secret).build())
-            );
-            deployment.getSpec().getTemplate().getSpec().setImagePullSecrets(pullSecrets);
+        // template
+        if (schemaRegistry.getSpec().getTemplate() != null) {
+            SchemaRegistrySpec.Template template = schemaRegistry.getSpec().getTemplate();
+
+            // pod
+            if (template.getPod() != null) {
+                // pull secret
+                List<String> secrets = template.getPod().getImagePullSecrets();
+                if (CollectionUtils.isNotEmpty(secrets)) {
+                    List<LocalObjectReference> pullSecrets = operatorConfig.getImagePullSecrets();
+                    secrets.forEach(secret -> pullSecrets.add(
+                            new LocalObjectReferenceBuilder().withName(secret).build())
+                    );
+                    deployment.getSpec().getTemplate().getSpec().setImagePullSecrets(pullSecrets);
+                }
+            }
+
+            // terminationGracePeriodSeconds
+            if (schemaRegistry.getSpec().getTemplate().getPod().getTerminationGracePeriodSeconds() != null) {
+                deployment.getSpec().getTemplate().getSpec().setTerminationGracePeriodSeconds(
+                        schemaRegistry.getSpec().getTemplate().getPod().getTerminationGracePeriodSeconds());
+            }
+        }
+
+        // resources
+        if (schemaRegistry.getSpec().getResources() != null) {
+            SchemaRegistrySpec.Resources resources = schemaRegistry.getSpec().getResources();
+            ResourceRequirements requirements = deployment.getSpec().getTemplate().getSpec().getContainers().get(0).getResources();
+            // requests
+            if (MapUtils.isNotEmpty(resources.getRequests())) {
+                resources.getRequests().forEach((k, v) -> requirements.getRequests().put(k, Quantity.parse(v)));
+            }
+            // limits
+            if (MapUtils.isNotEmpty(resources.getLimits())) {
+                resources.getLimits().forEach((k, v) -> requirements.getLimits().put(k, Quantity.parse(v)));
+            }
         }
 
         List<EnvVar> envVars = deployment.getSpec().getTemplate().getSpec().getContainers().get(0).getEnv();
@@ -204,6 +237,32 @@ public class SchemaRegistryController implements ResourceController<SchemaRegist
             envVars.add(bssEnv);
         }
         log.debug("create deployment with using envs : \n{}", EnvUtils.toPrintString(envVars));
+
+        // readinessProbe
+        if (schemaRegistry.getSpec().getReadinessProbe() != null) {
+            Probe probe = new Probe();
+            probe.setHttpGet(new HTTPGetAction(null, null, "/", new IntOrString(8081), "HTTP"));
+            probe.setInitialDelaySeconds(schemaRegistry.getSpec().getReadinessProbe().getInitialDelaySeconds());
+            probe.setTimeoutSeconds(schemaRegistry.getSpec().getReadinessProbe().getTimeoutSeconds());
+            probe.setPeriodSeconds(schemaRegistry.getSpec().getReadinessProbe().getPeriodSeconds());
+            probe.setSuccessThreshold(schemaRegistry.getSpec().getReadinessProbe().getSuccessThreshold());
+            probe.setFailureThreshold(schemaRegistry.getSpec().getReadinessProbe().getFailureThreshold());
+
+            deployment.getSpec().getTemplate().getSpec().getContainers().get(0).setReadinessProbe(probe);
+        }
+
+        // livenessProbe
+        if (schemaRegistry.getSpec().getLivenessProbe() != null) {
+            Probe probe = new Probe();
+            probe.setHttpGet(new HTTPGetAction(null, null, "/", new IntOrString(8081), "HTTP"));
+            probe.setInitialDelaySeconds(schemaRegistry.getSpec().getLivenessProbe().getInitialDelaySeconds());
+            probe.setTimeoutSeconds(schemaRegistry.getSpec().getLivenessProbe().getTimeoutSeconds());
+            probe.setPeriodSeconds(schemaRegistry.getSpec().getLivenessProbe().getPeriodSeconds());
+            probe.setSuccessThreshold(schemaRegistry.getSpec().getLivenessProbe().getSuccessThreshold());
+            probe.setFailureThreshold(schemaRegistry.getSpec().getLivenessProbe().getFailureThreshold());
+
+            deployment.getSpec().getTemplate().getSpec().getContainers().get(0).setLivenessProbe(probe);
+        }
 
         return deployment;
     }

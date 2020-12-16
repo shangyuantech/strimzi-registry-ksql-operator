@@ -7,7 +7,7 @@ spec:
   version: 2.5.0
   replicas: 1
   bootstrapServers: 'PLAINTEXT://kafka-brokers:9092'
-  # 参考 https://docs.confluent.io/5.5.0/schema-registry/installation/config.html#sr-configuration-options
+  # https://docs.confluent.io/5.5.0/schema-registry/installation/config.html#sr-configuration-options
   config:
     kafkastore.group.id: example-schemaregistry
     kafkastore.init.timeout.ms: '12000'
@@ -15,6 +15,13 @@ spec:
   otherProps:
     TZ: 'Asia/Shanghai'
   image: confluentinc/cp-schema-registry:5.5.0
+  resources:
+    requests:
+      cpu: 200m
+      memory: 64Mi
+    limits:
+      cpu: 500m
+      memory: 256Mi
   external:
     type: nodeport
 #    loadbalanceIp: ""
@@ -24,3 +31,10 @@ spec:
     pod:
       imagePullSecrets:
       - pullsecret
+      terminationGracePeriodSeconds: 120
+  readinessProbe:
+    initialDelaySeconds: 30
+    timeoutSeconds: 5
+  livenessProbe:
+    initialDelaySeconds: 30
+    timeoutSeconds: 5

@@ -18,6 +18,8 @@ public class OperatorConfig {
     public static final String STRIMZI_CLUSTER_OPERATOR_NAME = "strimzi-registry-ksql-operator";
 
     public static final String STRIMZI_NAMESPACE = "STRIMZI_NAMESPACE";
+    public static final String STRIMZI_DEFAULT_NAMESPACE = "*";
+
     public static final String STRIMZI_IMAGE_PULL_POLICY = "STRIMZI_IMAGE_PULL_POLICY";
     public static final String STRIMZI_IMAGE_PULL_SECRETS = "STRIMZI_IMAGE_PULL_SECRETS";
 
@@ -28,13 +30,13 @@ public class OperatorConfig {
     public static final String SCHEMA_REGISTRY_KAFKASTORE_BOOTSTRAP_SERVERS = "SCHEMA_REGISTRY_KAFKASTORE_BOOTSTRAP_SERVERS";
 
 
-    private final Optional<String> namespaces;
+    private final List<String> namespaces;
     private final ImagePullPolicy imagePullPolicy;
     private final List<LocalObjectReference> imagePullSecrets;
     private final HashMap<String, String> schemaRegistryImage;
 
     public static OperatorConfig fromMap(Map<String, String> map) {
-        Optional<String> namespaces = Optional.ofNullable(map.get(STRIMZI_NAMESPACE));
+        List<String> namespaces = Arrays.asList(map.getOrDefault(STRIMZI_NAMESPACE, STRIMZI_DEFAULT_NAMESPACE).split(","));
         ImagePullPolicy imagePullPolicy = parseImagePullPolicy(map.get(STRIMZI_IMAGE_PULL_POLICY));
         List<LocalObjectReference> imagePullSecrets = parseImagePullSecrets(map.get(STRIMZI_IMAGE_PULL_SECRETS));
         HashMap<String, String> schemaRegistryImage = parseSchemaRegistryImage(map.get(STRIMZI_SCHEMA_REGISTRY_IMAGE));
@@ -42,7 +44,7 @@ public class OperatorConfig {
         return new OperatorConfig(namespaces, imagePullPolicy, imagePullSecrets, schemaRegistryImage);
     }
 
-    public OperatorConfig(Optional<String> namespaces, ImagePullPolicy imagePullPolicy,
+    public OperatorConfig(List<String> namespaces, ImagePullPolicy imagePullPolicy,
                           List<LocalObjectReference> imagePullSecrets,
                           HashMap<String, String> schemaRegistryImage) {
         this.namespaces = namespaces;
@@ -115,7 +117,7 @@ public class OperatorConfig {
         return schemaRegistryImageMap;
     }
 
-    public Optional<String> getNamespaces() {
+    public List<String> getNamespaces() {
         return namespaces;
     }
 

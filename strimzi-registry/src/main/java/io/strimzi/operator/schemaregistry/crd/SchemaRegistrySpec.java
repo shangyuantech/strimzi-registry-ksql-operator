@@ -68,8 +68,8 @@ public class SchemaRegistrySpec {
 
         @Override
         public String toString() {
-            return "External{" +
-                    "type='" + type + '\'' +
+            return "External {" +
+                    "type = '" + type + '\'' +
                     ", nodeport=" + nodeport +
                     ", loadbalanceIp='" + loadbalanceIp + '\'' +
                     ", loadbalancerSourceRanges='" + loadbalancerSourceRanges + '\'' +
@@ -81,9 +81,11 @@ public class SchemaRegistrySpec {
 
     public static class Template {
 
-        public class Pod {
+        public static class Pod {
 
             private List<String> imagePullSecrets;
+
+            private Long terminationGracePeriodSeconds = 120L;
 
             public List<String> getImagePullSecrets() {
                 return imagePullSecrets;
@@ -93,10 +95,19 @@ public class SchemaRegistrySpec {
                 this.imagePullSecrets = imagePullSecrets;
             }
 
+            public Long getTerminationGracePeriodSeconds() {
+                return terminationGracePeriodSeconds;
+            }
+
+            public void setTerminationGracePeriodSeconds(Long terminationGracePeriodSeconds) {
+                this.terminationGracePeriodSeconds = terminationGracePeriodSeconds;
+            }
+
             @Override
             public String toString() {
-                return "Pod{" +
-                        "imagePullSecrets=" + imagePullSecrets +
+                return "Pod {" +
+                        "imagePullSecrets = " + imagePullSecrets +
+                        ", terminationGracePeriodSeconds = " + terminationGracePeriodSeconds +
                         '}';
             }
         }
@@ -113,8 +124,8 @@ public class SchemaRegistrySpec {
 
         @Override
         public String toString() {
-            return "Template{" +
-                    "pod=" + pod +
+            return "Template {" +
+                    "pod = " + pod +
                     '}';
         }
     }
@@ -185,17 +196,209 @@ public class SchemaRegistrySpec {
         this.template = template;
     }
 
+    public static class Resources {
+
+        private Map<String, String> requests;
+
+        private Map<String, String> limits;
+
+        public Map<String, String> getRequests() {
+            return requests;
+        }
+
+        public void setRequests(Map<String, String> requests) {
+            this.requests = requests;
+        }
+
+        public Map<String, String> getLimits() {
+            return limits;
+        }
+
+        public void setLimits(Map<String, String> limits) {
+            this.limits = limits;
+        }
+
+        @Override
+        public String toString() {
+            return "Resources {" +
+                    "requests = " + requests +
+                    ", limits = " + limits +
+                    '}';
+        }
+    }
+
+    private Resources resources;
+
+    public Resources getResources() {
+        return resources;
+    }
+
+    public void setResources(Resources resources) {
+        this.resources = resources;
+    }
+
+    public static class ReadinessProbe {
+
+        private Integer initialDelaySeconds = 30;
+
+        private Integer timeoutSeconds = 5;
+
+        private Integer periodSeconds = 10;
+
+        private Integer successThreshold = 1;
+
+        private Integer failureThreshold = 3;
+
+        public Integer getInitialDelaySeconds() {
+            return initialDelaySeconds;
+        }
+
+        public void setInitialDelaySeconds(Integer initialDelaySeconds) {
+            this.initialDelaySeconds = initialDelaySeconds;
+        }
+
+        public Integer getTimeoutSeconds() {
+            return timeoutSeconds;
+        }
+
+        public void setTimeoutSeconds(Integer timeoutSeconds) {
+            this.timeoutSeconds = timeoutSeconds;
+        }
+
+        public Integer getPeriodSeconds() {
+            return periodSeconds;
+        }
+
+        public void setPeriodSeconds(Integer periodSeconds) {
+            this.periodSeconds = periodSeconds;
+        }
+
+        public Integer getSuccessThreshold() {
+            return successThreshold;
+        }
+
+        public void setSuccessThreshold(Integer successThreshold) {
+            this.successThreshold = successThreshold;
+        }
+
+        public Integer getFailureThreshold() {
+            return failureThreshold;
+        }
+
+        public void setFailureThreshold(Integer failureThreshold) {
+            this.failureThreshold = failureThreshold;
+        }
+
+        @Override
+        public String toString() {
+            return "ReadinessProbe {" +
+                    "initialDelaySeconds = " + initialDelaySeconds +
+                    ", timeoutSeconds = " + timeoutSeconds +
+                    ", periodSeconds = " + timeoutSeconds +
+                    ", successThreshold = " + timeoutSeconds +
+                    ", failureThreshold = " + timeoutSeconds +
+                    '}';
+        }
+    }
+
+    public static class LivenessProbe {
+
+        private Integer initialDelaySeconds = 30;
+
+        private Integer timeoutSeconds = 5;
+
+        private Integer periodSeconds = 10;
+
+        private Integer successThreshold = 1;
+
+        private Integer failureThreshold = 3;
+
+        public Integer getInitialDelaySeconds() {
+            return initialDelaySeconds;
+        }
+
+        public void setInitialDelaySeconds(Integer initialDelaySeconds) {
+            this.initialDelaySeconds = initialDelaySeconds;
+        }
+
+        public Integer getTimeoutSeconds() {
+            return timeoutSeconds;
+        }
+
+        public void setTimeoutSeconds(Integer timeoutSeconds) {
+            this.timeoutSeconds = timeoutSeconds;
+        }
+
+        public Integer getPeriodSeconds() {
+            return periodSeconds;
+        }
+
+        public void setPeriodSeconds(Integer periodSeconds) {
+            this.periodSeconds = periodSeconds;
+        }
+
+        public Integer getSuccessThreshold() {
+            return successThreshold;
+        }
+
+        public void setSuccessThreshold(Integer successThreshold) {
+            this.successThreshold = successThreshold;
+        }
+
+        public Integer getFailureThreshold() {
+            return failureThreshold;
+        }
+
+        public void setFailureThreshold(Integer failureThreshold) {
+            this.failureThreshold = failureThreshold;
+        }
+
+        @Override
+        public String toString() {
+            return "LivenessProbe {" +
+                    "initialDelaySeconds = " + initialDelaySeconds +
+                    ", timeoutSeconds = " + timeoutSeconds +
+                    ", periodSeconds = " + timeoutSeconds +
+                    ", successThreshold = " + timeoutSeconds +
+                    ", failureThreshold = " + timeoutSeconds +
+                    '}';
+        }
+    }
+
+    private ReadinessProbe readinessProbe;
+
+    private LivenessProbe livenessProbe;
+
+    public ReadinessProbe getReadinessProbe() {
+        return readinessProbe;
+    }
+
+    public void setReadinessProbe(ReadinessProbe readinessProbe) {
+        this.readinessProbe = readinessProbe;
+    }
+
+    public LivenessProbe getLivenessProbe() {
+        return livenessProbe;
+    }
+
+    public void setLivenessProbe(LivenessProbe livenessProbe) {
+        this.livenessProbe = livenessProbe;
+    }
+
     @Override
     public String toString() {
-        return "SchemaRegistrySpec{" + "\n" +
-                "   version='" + version + '\'' +
-                ", replicas=" + replicas +
-                ", bootstrapServers='" + bootstrapServers + '\'' +
-                ", config=" + config +
-                ", otherProps=" + otherProps +
-                ", image='" + image + '\'' +
-                ", external=" + external +
-                ", template=" + template +
+        return "SchemaRegistrySpec {" + "\n" +
+                "   version = '" + version + '\'' +
+                ", replicas = " + replicas +
+                ", bootstrapServers = '" + bootstrapServers + '\'' +
+                ", config = " + config +
+                ", otherProps = " + otherProps +
+                ", image = '" + image + '\'' +
+                ", external = " + external +
+                ", template = " + template +
+                ", resources = " + resources +
+                ", readinessProbe = " + readinessProbe +
+                ", livenessProbe = " + livenessProbe +
                 '}';
     }
 }

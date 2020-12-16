@@ -26,6 +26,13 @@ spec:
   otherProps:
     TZ: 'Asia/Shanghai'
   image: confluentinc/cp-schema-registry:6.0.0
+  resources:
+    requests:
+      cpu: 200m
+      memory: 64Mi
+    limits:
+      cpu: 500m
+      memory: 256Mi
   external:
     type: nodeport
 #    loadbalanceIp: ""
@@ -35,6 +42,13 @@ spec:
     pod:
       imagePullSecrets:
       - pullsecret
+      terminationGracePeriodSeconds: 120
+  readinessProbe:
+    initialDelaySeconds: 30
+    timeoutSeconds: 5
+  livenessProbe:
+    initialDelaySeconds: 30
+    timeoutSeconds: 5
 ```
 
 # KsqlDB Operator
