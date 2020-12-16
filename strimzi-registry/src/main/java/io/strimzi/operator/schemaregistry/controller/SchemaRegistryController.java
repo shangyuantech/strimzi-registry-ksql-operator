@@ -25,6 +25,7 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -182,27 +183,32 @@ public class SchemaRegistryController implements ResourceController<SchemaRegist
                     );
                     deployment.getSpec().getTemplate().getSpec().setImagePullSecrets(pullSecrets);
                 }
-            }
 
-            // terminationGracePeriodSeconds
-            if (schemaRegistry.getSpec().getTemplate().getPod().getTerminationGracePeriodSeconds() != null) {
-                deployment.getSpec().getTemplate().getSpec().setTerminationGracePeriodSeconds(
-                        schemaRegistry.getSpec().getTemplate().getPod().getTerminationGracePeriodSeconds());
+                // terminationGracePeriodSeconds
+                if (schemaRegistry.getSpec().getTemplate().getPod().getTerminationGracePeriodSeconds() != null) {
+                    deployment.getSpec().getTemplate().getSpec().setTerminationGracePeriodSeconds(
+                            schemaRegistry.getSpec().getTemplate().getPod().getTerminationGracePeriodSeconds());
+                }
             }
         }
 
         // resources
         if (schemaRegistry.getSpec().getResources() != null) {
             SchemaRegistrySpec.Resources resources = schemaRegistry.getSpec().getResources();
-            ResourceRequirements requirements = deployment.getSpec().getTemplate().getSpec().getContainers().get(0).getResources();
+            ResourceRequirements requirements = new ResourceRequirements();
             // requests
             if (MapUtils.isNotEmpty(resources.getRequests())) {
-                resources.getRequests().forEach((k, v) -> requirements.getRequests().put(k, Quantity.parse(v)));
+                Map<String, Quantity> requestsMap = new HashMap<>();
+                resources.getRequests().forEach((k, v) -> requestsMap.put(k, Quantity.parse(v)));
+                requirements.setRequests(requestsMap);
             }
             // limits
             if (MapUtils.isNotEmpty(resources.getLimits())) {
-                resources.getLimits().forEach((k, v) -> requirements.getLimits().put(k, Quantity.parse(v)));
+                Map<String, Quantity> limitsMap = new HashMap<>();
+                resources.getLimits().forEach((k, v) -> limitsMap.put(k, Quantity.parse(v)));
+                requirements.setLimits(limitsMap);
             }
+            deployment.getSpec().getTemplate().getSpec().getContainers().get(0).setResources(requirements);
         }
 
         List<EnvVar> envVars = deployment.getSpec().getTemplate().getSpec().getContainers().get(0).getEnv();

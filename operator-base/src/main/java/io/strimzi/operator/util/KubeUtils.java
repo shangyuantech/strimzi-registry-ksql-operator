@@ -1,5 +1,8 @@
 package io.strimzi.operator.util;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import io.fabric8.kubernetes.api.model.Service;
 import io.fabric8.kubernetes.api.model.ServicePort;
 import io.fabric8.kubernetes.api.model.apps.Deployment;
@@ -12,14 +15,36 @@ public class KubeUtils {
 
     private static final Logger log = LoggerFactory.getLogger(KubeUtils.class);
 
+    private final static ObjectMapper mapper = new ObjectMapper(new YAMLFactory());
+
+    public static String getYAML(Object obj) throws JsonProcessingException {
+        return mapper.writeValueAsString(obj);
+    }
+
+    /**
+     * show resource to yaml
+     */
+    public static void showYAML(Object obj) {
+        if (log.isDebugEnabled()) {
+            try {
+                log.debug("show {} yaml = \n{}", obj.getClass().getName(), getYAML(obj));
+            } catch (JsonProcessingException e) {
+                log.debug("show {} string = \n{}", obj.getClass().getName(), obj.toString());
+            }
+        }
+    }
+
     /**
      * merge deployment
      */
     public static void mergeDeploymentResource(KubernetesClient kubernetesClient, Deployment deployment) {
         String namespace = deployment.getMetadata().getNamespace();
-        // TODO In the future, a method to identify different services may be added.
-        // If it is the same, it will not be created. We haven't done it for the time being
-        log.info("Creating or updating Deployment {} in {}", deployment.getMetadata().getName(), namespace);
+
+        log.info("Creating or updating deployment {} in {}", deployment.getMetadata().getName(), namespace);
+        showYAML(deployment);
+
+        // TODO In the future, a method to identify different deployment may be added.
+        // If it is the same, it will not be replace. We haven't done it for the time being
         kubernetesClient.apps().deployments().inNamespace(namespace).createOrReplace(deployment);
     }
 
@@ -32,7 +57,8 @@ public class KubeUtils {
                 .withName(service.getMetadata().getName()).get();
 
         if (old == null) {
-            log.info("Creating Service {} in {}", service.getMetadata().getName(), namespace);
+            log.info("Creating service {} in {}", service.getMetadata().getName(), namespace);
+            showYAML(service);
             kubernetesClient.services().inNamespace(namespace).create(service);
         } else {
             ServiceType serviceType = ServiceType.valueOf(service.getSpec().getType());
@@ -75,6 +101,8 @@ public class KubeUtils {
 
             if (change) {
                 log.info("Service {} in {} have been exists, need to be replaced", service.getMetadata().getName(), namespace);
+                showYAML(service);
+                kubernetesClient.services().inNamespace(namespace).createOrReplace(service);
             } else {
                 log.info("Service {} in {} may be not changed, passing replaced", service.getMetadata().getName(), namespace);
             }

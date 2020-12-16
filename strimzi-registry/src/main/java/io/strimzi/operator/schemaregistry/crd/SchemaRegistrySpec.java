@@ -1,24 +1,35 @@
 package io.strimzi.operator.schemaregistry.crd;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.databind.JsonDeserializer;
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 
 import java.util.List;
 import java.util.Map;
 
 import static io.strimzi.operator.model.ServiceType.ClusterIP;
 
+@JsonDeserialize(
+        using = JsonDeserializer.None.class
+)
+@JsonInclude(JsonInclude.Include.NON_NULL)
 public class SchemaRegistrySpec {
 
     private String version = "2.6.0";
 
     private Integer replicas = 1;
 
+    @JsonInclude(JsonInclude.Include.NON_EMPTY)
     private String bootstrapServers;
 
+    @JsonInclude(JsonInclude.Include.NON_EMPTY)
     private Map<String, String> config;
 
+    @JsonInclude(JsonInclude.Include.NON_EMPTY)
     private Map<String, String> otherProps;
 
+    @JsonInclude(JsonInclude.Include.NON_EMPTY)
     private String image;
 
     public static class External {
@@ -77,14 +88,18 @@ public class SchemaRegistrySpec {
         }
     }
 
+    @JsonInclude(JsonInclude.Include.NON_EMPTY)
     private External external;
 
+    @JsonIgnoreProperties(ignoreUnknown = true)
     public static class Template {
 
         public static class Pod {
 
+            @JsonInclude(JsonInclude.Include.NON_EMPTY)
             private List<String> imagePullSecrets;
 
+            @JsonInclude(JsonInclude.Include.NON_EMPTY)
             private Long terminationGracePeriodSeconds = 120L;
 
             public List<String> getImagePullSecrets() {
@@ -112,6 +127,7 @@ public class SchemaRegistrySpec {
             }
         }
 
+        @JsonInclude(JsonInclude.Include.NON_EMPTY)
         private Pod pod;
 
         public Pod getPod() {
@@ -130,6 +146,7 @@ public class SchemaRegistrySpec {
         }
     }
 
+    @JsonInclude(JsonInclude.Include.NON_EMPTY)
     private Template template;
 
     public Integer getReplicas() {
@@ -198,8 +215,10 @@ public class SchemaRegistrySpec {
 
     public static class Resources {
 
+        @JsonInclude(JsonInclude.Include.NON_EMPTY)
         private Map<String, String> requests;
 
+        @JsonInclude(JsonInclude.Include.NON_EMPTY)
         private Map<String, String> limits;
 
         public Map<String, String> getRequests() {
@@ -227,6 +246,7 @@ public class SchemaRegistrySpec {
         }
     }
 
+    @JsonInclude(JsonInclude.Include.NON_EMPTY)
     private Resources resources;
 
     public Resources getResources() {
@@ -365,8 +385,10 @@ public class SchemaRegistrySpec {
         }
     }
 
+    @JsonInclude(JsonInclude.Include.NON_EMPTY)
     private ReadinessProbe readinessProbe;
 
+    @JsonInclude(JsonInclude.Include.NON_EMPTY)
     private LivenessProbe livenessProbe;
 
     public ReadinessProbe getReadinessProbe() {

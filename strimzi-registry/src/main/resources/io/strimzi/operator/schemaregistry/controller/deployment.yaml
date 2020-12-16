@@ -4,13 +4,11 @@ metadata:
   name: ""
 spec:
   selector:
-    matchLabels:
-      app: ""
+    matchLabels: {}
   replicas: 1
   template:
     metadata:
-      labels:
-        app: ""
+      labels: {}
     spec:
       containers:
         - name: cp-schema-registry
