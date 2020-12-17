@@ -40,6 +40,12 @@ public class SchemaRegistryController implements ResourceController<SchemaRegist
 
     private final static String COMPONENT = "schema-registry";
 
+    private final static Integer DEFAULT_INITIAL_DELAY_SECONDS = 30;
+    private final static Integer DEFAULT_TIMEOUT_SECONDS = 5;
+    private final static Integer DEFAULT_PERIOD_SECONDS = 10;
+    private final static Integer DEFAULT_SUCCESS_THRESHOLD = 1;
+    private final static Integer DEFAULT_FAILURE_THRESHOLD  = 3;
+
     public SchemaRegistryController(KubernetesClient kubernetesClient, OperatorConfig operatorConfig) {
         this.kubernetesClient = kubernetesClient;
         this.operatorConfig = operatorConfig;
@@ -246,26 +252,28 @@ public class SchemaRegistryController implements ResourceController<SchemaRegist
 
         // readinessProbe
         if (schemaRegistry.getSpec().getReadinessProbe() != null) {
+            SchemaRegistrySpec.ReadinessProbe readinessProbe = schemaRegistry.getSpec().getReadinessProbe();
             Probe probe = new Probe();
             probe.setHttpGet(new HTTPGetAction(null, null, "/", new IntOrString(8081), "HTTP"));
-            probe.setInitialDelaySeconds(schemaRegistry.getSpec().getReadinessProbe().getInitialDelaySeconds());
-            probe.setTimeoutSeconds(schemaRegistry.getSpec().getReadinessProbe().getTimeoutSeconds());
-            probe.setPeriodSeconds(schemaRegistry.getSpec().getReadinessProbe().getPeriodSeconds());
-            probe.setSuccessThreshold(schemaRegistry.getSpec().getReadinessProbe().getSuccessThreshold());
-            probe.setFailureThreshold(schemaRegistry.getSpec().getReadinessProbe().getFailureThreshold());
+            probe.setInitialDelaySeconds(readinessProbe.getInitialDelaySeconds() == null ? DEFAULT_INITIAL_DELAY_SECONDS : readinessProbe.getInitialDelaySeconds());
+            probe.setTimeoutSeconds(readinessProbe.getTimeoutSeconds() == null ? DEFAULT_TIMEOUT_SECONDS : readinessProbe.getTimeoutSeconds());
+            probe.setPeriodSeconds(readinessProbe.getPeriodSeconds() == null ? DEFAULT_PERIOD_SECONDS : readinessProbe.getPeriodSeconds());
+            probe.setSuccessThreshold(readinessProbe.getSuccessThreshold() == null ? DEFAULT_SUCCESS_THRESHOLD : readinessProbe.getSuccessThreshold());
+            probe.setFailureThreshold(readinessProbe.getFailureThreshold() == null ? DEFAULT_FAILURE_THRESHOLD : readinessProbe.getFailureThreshold());
 
             deployment.getSpec().getTemplate().getSpec().getContainers().get(0).setReadinessProbe(probe);
         }
 
         // livenessProbe
         if (schemaRegistry.getSpec().getLivenessProbe() != null) {
+            SchemaRegistrySpec.LivenessProbe livenessProbe = schemaRegistry.getSpec().getLivenessProbe();
             Probe probe = new Probe();
             probe.setHttpGet(new HTTPGetAction(null, null, "/", new IntOrString(8081), "HTTP"));
-            probe.setInitialDelaySeconds(schemaRegistry.getSpec().getLivenessProbe().getInitialDelaySeconds());
-            probe.setTimeoutSeconds(schemaRegistry.getSpec().getLivenessProbe().getTimeoutSeconds());
-            probe.setPeriodSeconds(schemaRegistry.getSpec().getLivenessProbe().getPeriodSeconds());
-            probe.setSuccessThreshold(schemaRegistry.getSpec().getLivenessProbe().getSuccessThreshold());
-            probe.setFailureThreshold(schemaRegistry.getSpec().getLivenessProbe().getFailureThreshold());
+            probe.setInitialDelaySeconds(livenessProbe.getInitialDelaySeconds() == null ? DEFAULT_INITIAL_DELAY_SECONDS : livenessProbe.getInitialDelaySeconds());
+            probe.setTimeoutSeconds(livenessProbe.getTimeoutSeconds() == null ? DEFAULT_TIMEOUT_SECONDS : livenessProbe.getTimeoutSeconds());
+            probe.setPeriodSeconds(livenessProbe.getPeriodSeconds() == null ? DEFAULT_PERIOD_SECONDS : livenessProbe.getPeriodSeconds());
+            probe.setSuccessThreshold(livenessProbe.getSuccessThreshold() == null ? DEFAULT_SUCCESS_THRESHOLD : livenessProbe.getSuccessThreshold());
+            probe.setFailureThreshold(livenessProbe.getFailureThreshold() == null ? DEFAULT_FAILURE_THRESHOLD : livenessProbe.getFailureThreshold());
 
             deployment.getSpec().getTemplate().getSpec().getContainers().get(0).setLivenessProbe(probe);
         }

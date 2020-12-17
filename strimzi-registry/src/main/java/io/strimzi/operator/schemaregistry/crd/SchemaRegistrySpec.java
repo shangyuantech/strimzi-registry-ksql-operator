@@ -259,15 +259,20 @@ public class SchemaRegistrySpec {
 
     public static class ReadinessProbe {
 
-        private Integer initialDelaySeconds = 30;
+        @JsonInclude(JsonInclude.Include.NON_EMPTY)
+        private Integer initialDelaySeconds;
 
-        private Integer timeoutSeconds = 5;
+        @JsonInclude(JsonInclude.Include.NON_EMPTY)
+        private Integer timeoutSeconds;
 
-        private Integer periodSeconds = 10;
+        @JsonInclude(JsonInclude.Include.NON_EMPTY)
+        private Integer periodSeconds;
 
-        private Integer successThreshold = 1;
+        @JsonInclude(JsonInclude.Include.NON_EMPTY)
+        private Integer successThreshold;
 
-        private Integer failureThreshold = 3;
+        @JsonInclude(JsonInclude.Include.NON_EMPTY)
+        private Integer failureThreshold;
 
         public Integer getInitialDelaySeconds() {
             return initialDelaySeconds;
@@ -323,15 +328,20 @@ public class SchemaRegistrySpec {
 
     public static class LivenessProbe {
 
-        private Integer initialDelaySeconds = 30;
+        @JsonInclude(JsonInclude.Include.NON_EMPTY)
+        private Integer initialDelaySeconds;
 
-        private Integer timeoutSeconds = 5;
+        @JsonInclude(JsonInclude.Include.NON_EMPTY)
+        private Integer timeoutSeconds;
 
-        private Integer periodSeconds = 10;
+        @JsonInclude(JsonInclude.Include.NON_EMPTY)
+        private Integer periodSeconds;
 
-        private Integer successThreshold = 1;
+        @JsonInclude(JsonInclude.Include.NON_EMPTY)
+        private Integer successThreshold;
 
-        private Integer failureThreshold = 3;
+        @JsonInclude(JsonInclude.Include.NON_EMPTY)
+        private Integer failureThreshold;
 
         public Integer getInitialDelaySeconds() {
             return initialDelaySeconds;
