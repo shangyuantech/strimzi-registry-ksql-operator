@@ -2,7 +2,6 @@ package io.strimzi.operator.schemaregistry.controller;
 
 import io.fabric8.kubernetes.api.model.*;
 import io.fabric8.kubernetes.api.model.apps.Deployment;
-import io.fabric8.kubernetes.api.model.apps.DoneableDeployment;
 import io.fabric8.kubernetes.client.KubernetesClient;
 import io.fabric8.kubernetes.client.dsl.RollableScalableResource;
 import io.fabric8.kubernetes.client.dsl.ServiceResource;
@@ -25,11 +24,15 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-@Controller(crdName = "schemaregistries.kafka.strimzi.io")
+import static io.strimzi.operator.model.ServiceType.LoadBalancer;
+import static io.strimzi.operator.model.ServiceType.NodePort;
+
+@Controller
 public class SchemaRegistryController implements ResourceController<SchemaRegistry> {
 
     private final Logger log = LoggerFactory.getLogger(getClass());
@@ -55,7 +58,7 @@ public class SchemaRegistryController implements ResourceController<SchemaRegist
     public DeleteControl deleteResource(SchemaRegistry schemaRegistry, Context<SchemaRegistry> context) {
 
         log.info("Deleting Deployment {}", deploymentName(schemaRegistry));
-        RollableScalableResource<Deployment, DoneableDeployment> deployment =
+        RollableScalableResource<Deployment> deployment =
                 kubernetesClient
                         .apps()
                         .deployments()
@@ -66,7 +69,7 @@ public class SchemaRegistryController implements ResourceController<SchemaRegist
         }
 
         log.info("Deleting Service {}", serviceName(schemaRegistry));
-        ServiceResource<Service, DoneableService> service =
+        ServiceResource<Service> service =
                 kubernetesClient
                         .services()
                         .inNamespace(schemaRegistry.getMetadata().getNamespace())
@@ -88,9 +91,7 @@ public class SchemaRegistryController implements ResourceController<SchemaRegist
             return UpdateControl.noUpdate();
         }
 
-        log.debug("update {}", schemaRegistry);
         String namespace = schemaRegistry.getMetadata().getNamespace();
-
         try {
             // deployment
             Deployment deployment = createDeployment(schemaRegistry, namespace);
@@ -106,7 +107,7 @@ public class SchemaRegistryController implements ResourceController<SchemaRegist
             buildStatus(schemaRegistry);
 
         } catch (Exception e) {
-            e.printStackTrace();
+            log.error("error when create or update resource ", e);
 
             SchemaRegistryStatus fail = new SchemaRegistryStatus();
             fail.setErrorMsg(ExceptionUtils.getMessage(e));
@@ -114,6 +115,7 @@ public class SchemaRegistryController implements ResourceController<SchemaRegist
             schemaRegistry.setStatus(fail);
         }
 
+        log.debug("update {}", schemaRegistry);
         return UpdateControl.updateStatusSubResource(schemaRegistry);
     }
 
@@ -124,11 +126,72 @@ public class SchemaRegistryController implements ResourceController<SchemaRegist
         SchemaRegistryStatus success = new SchemaRegistryStatus();
         // availableReplicas
         success.setAvailableReplicas(schemaRegistry.getSpec().getReplicas());
+
         // schemaRegistryService
-        success.setSchemaRegistryService(String.format("http://%s.%s:8081", serviceName(schemaRegistry),
-                schemaRegistry.getMetadata().getNamespace()));
+        List<SchemaRegistryService> services = new ArrayList<>();
+        // inner service
+        SchemaRegistryService serviceInner = new SchemaRegistryService("inner");
+        serviceInner.addAddress(String.format("%s.%s", serviceName(schemaRegistry),
+                schemaRegistry.getMetadata().getNamespace()), 8081);
+        services.add(serviceInner);
+        // external service
+        SchemaRegistrySpec.External external = schemaRegistry.getSpec().getExternal();
+        switch (ServiceType.getTypeByName(external.getType())) {
+            case NodePort:
+                Integer nodePort = getNodePort(schemaRegistry);
+                SchemaRegistryService npExternal = new SchemaRegistryService("external");
+                services.add(npExternal.addAddress(getFirstWorker(), nodePort));
+                break;
+            case LoadBalancer:
+                Integer lbPort = getNodePort(schemaRegistry);
+                SchemaRegistryService lbExternal = new SchemaRegistryService("external");
+                if (StringUtils.isNoneBlank(external.getLoadbalanceIp())) {
+                    services.add(lbExternal.addAddress(external.getLoadbalanceIp(), lbPort));
+                } else {
+                    services.add(lbExternal.addAddress(getFirstWorker(), lbPort));
+                }
+                break;
+            default:
+                break;
+        }
+        success.setSchemaRegistryService(services);
 
         schemaRegistry.setStatus(success);
+    }
+
+    private Integer getNodePort(SchemaRegistry schemaRegistry) {
+        Integer nodePort = schemaRegistry.getSpec().getExternal().getNodeport();
+        if (nodePort != null) {
+            return nodePort;
+        } else {
+            // we need to get service nodeport
+            String namespace = schemaRegistry.getMetadata().getNamespace();
+            Service service = kubernetesClient.services().inNamespace(namespace)
+                    .withName(serviceName(schemaRegistry)).get();
+            return service.getSpec().getPorts().get(0).getNodePort();
+        }
+    }
+
+    private String getFirstWorker() {
+        List<Node> nodeList = kubernetesClient.nodes().list().getItems();
+        for (Node node : nodeList) {
+            if (!node.getMetadata().getLabels().containsKey("node-role.kubernetes.io/worker")) {
+                continue;
+            }
+            List<NodeCondition> conditions = node.getStatus().getConditions();
+            if (conditions.stream().noneMatch(c -> c.getType().equals("Ready") && c.getStatus().equals("True"))) {
+                continue;
+            }
+
+            List<NodeAddress> nodeAddresses = node.getStatus().getAddresses();
+            for (NodeAddress nodeAddress : nodeAddresses) {
+                if (nodeAddress.getType().equals("InternalIP")) {
+                    return nodeAddress.getAddress();
+                }
+            }
+        }
+
+        return "";
     }
 
     /**

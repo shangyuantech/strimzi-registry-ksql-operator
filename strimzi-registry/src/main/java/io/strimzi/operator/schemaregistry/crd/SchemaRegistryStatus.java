@@ -3,6 +3,8 @@ package io.strimzi.operator.schemaregistry.crd;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import org.apache.commons.lang3.ArrayUtils;
 
+import java.util.List;
+
 public class SchemaRegistryStatus {
 
     @JsonInclude(JsonInclude.Include.NON_EMPTY)
@@ -17,13 +19,13 @@ public class SchemaRegistryStatus {
     }
 
     @JsonInclude(JsonInclude.Include.NON_EMPTY)
-    private String schemaRegistryService;
+    private List<SchemaRegistryService> schemaRegistryService;
 
-    public String getSchemaRegistryService() {
+    public List<SchemaRegistryService> getSchemaRegistryService() {
         return schemaRegistryService;
     }
 
-    public void setSchemaRegistryService(String schemaRegistryService) {
+    public void setSchemaRegistryService(List<SchemaRegistryService> schemaRegistryService) {
         this.schemaRegistryService = schemaRegistryService;
     }
 
