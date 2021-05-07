@@ -137,7 +137,7 @@ public class Labels {
         this.labels = unmodifiableMap(new HashMap<>(labels));
     }
 
-    private Labels with(String label, String value) {
+    public Labels with(String label, String value) {
         Map<String, String> newLabels = new HashMap<>(labels.size() + 1);
         newLabels.putAll(labels);
         newLabels.put(label, value);

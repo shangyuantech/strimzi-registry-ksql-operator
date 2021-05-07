@@ -2,6 +2,11 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: ""
+  ownerReferences: # used for finding which SchemaRegistry does this Deployment belong to
+    - apiVersion: apps/v1
+      kind: SchemaRegistry
+      name: ""
+      uid: ""
 spec:
   selector:
     matchLabels: {}

@@ -8,10 +8,14 @@ import io.fabric8.kubernetes.client.dsl.ServiceResource;
 import io.fabric8.kubernetes.client.utils.Serialization;
 import io.javaoperatorsdk.operator.api.*;
 import io.javaoperatorsdk.operator.api.Context;
+import io.javaoperatorsdk.operator.processing.event.EventSourceManager;
+import io.javaoperatorsdk.operator.processing.event.internal.CustomResourceEvent;
 import io.strimzi.operator.config.OperatorConfig;
 import io.strimzi.operator.model.Labels;
 import io.strimzi.operator.model.ServiceType;
 import io.strimzi.operator.schemaregistry.crd.*;
+import io.strimzi.operator.schemaregistry.event.DeploymentEvent;
+import io.strimzi.operator.schemaregistry.event.DeploymentEventSource;
 import io.strimzi.operator.util.EnvUtils;
 import io.strimzi.operator.util.KubeUtils;
 import io.strimzi.operator.util.ValidationUtils;
@@ -24,13 +28,12 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
-import static io.strimzi.operator.model.ServiceType.LoadBalancer;
-import static io.strimzi.operator.model.ServiceType.NodePort;
+import static io.fabric8.kubernetes.client.Watcher.Action.DELETED;
+import static io.strimzi.operator.config.OperatorConfig.STRIMZI_CLUSTER_OPERATOR_NAME;
+import static io.strimzi.operator.model.Labels.KUBERNETES_MANAGED_BY_LABEL;
+import static io.strimzi.operator.model.Labels.STRIMZI_KIND_LABEL;
 
 @Controller
 public class SchemaRegistryController implements ResourceController<SchemaRegistry> {
@@ -39,19 +42,28 @@ public class SchemaRegistryController implements ResourceController<SchemaRegist
 
     private final KubernetesClient kubernetesClient;
 
+    private DeploymentEventSource deploymentEventSource;
+
     private final OperatorConfig operatorConfig;
 
-    private final static String COMPONENT = "schema-registry";
+    public final static String COMPONENT = "schema-registry";
 
     private final static Integer DEFAULT_INITIAL_DELAY_SECONDS = 30;
     private final static Integer DEFAULT_TIMEOUT_SECONDS = 5;
     private final static Integer DEFAULT_PERIOD_SECONDS = 10;
     private final static Integer DEFAULT_SUCCESS_THRESHOLD = 1;
-    private final static Integer DEFAULT_FAILURE_THRESHOLD  = 3;
+    private final static Integer DEFAULT_FAILURE_THRESHOLD = 3;
 
     public SchemaRegistryController(KubernetesClient kubernetesClient, OperatorConfig operatorConfig) {
         this.kubernetesClient = kubernetesClient;
         this.operatorConfig = operatorConfig;
+    }
+
+    @Override
+    public void init(EventSourceManager eventSourceManager) {
+        this.deploymentEventSource = DeploymentEventSource.createAndRegisterWatch(kubernetesClient);
+        log.debug("register event source schema-registry-deployment-event-source");
+        eventSourceManager.registerEventSource("schema-registry-deployment-event-source", this.deploymentEventSource);
     }
 
     @Override
@@ -91,32 +103,44 @@ public class SchemaRegistryController implements ResourceController<SchemaRegist
             return UpdateControl.noUpdate();
         }
 
-        String namespace = schemaRegistry.getMetadata().getNamespace();
-        try {
-            // deployment
-            Deployment deployment = createDeployment(schemaRegistry, namespace);
-            // service
-            Service service = createService(schemaRegistry, deployment, namespace);
+        Optional<CustomResourceEvent> latestCREvent =
+                context.getEvents().getLatestOfType(CustomResourceEvent.class);
+        Optional<DeploymentEvent> latestDeploymentEvent =
+                context.getEvents().getLatestOfType(DeploymentEvent.class);
 
-            // merge deployment
-            KubeUtils.mergeDeploymentResource(kubernetesClient, deployment);
-            // merge service
-            KubeUtils.mergeServiceResource(kubernetesClient, service);
+        if (latestCREvent.isPresent() ||
+                (latestDeploymentEvent.isPresent() && latestDeploymentEvent.get().getAction().equals(DELETED))) {
+            String namespace = schemaRegistry.getMetadata().getNamespace();
+            try {
+                // deployment
+                Deployment deployment = createDeployment(schemaRegistry, namespace);
+                // service
+                Service service = createService(schemaRegistry, deployment, namespace);
 
-            // build status
-            buildStatus(schemaRegistry);
+                // merge deployment
+                KubeUtils.mergeDeploymentResource(kubernetesClient, deployment);
+                // merge service
+                KubeUtils.mergeServiceResource(kubernetesClient, service);
 
-        } catch (Exception e) {
-            log.error("error when create or update resource ", e);
+            } catch (Exception e) {
+                log.error("error when create or update resource ", e);
 
-            SchemaRegistryStatus fail = new SchemaRegistryStatus();
-            fail.setErrorMsg(ExceptionUtils.getMessage(e));
-            fail.setStackTrace(ExceptionUtils.getStackFrames(e));
-            schemaRegistry.setStatus(fail);
+                SchemaRegistryStatus fail = new SchemaRegistryStatus();
+                fail.setErrorMsg(ExceptionUtils.getMessage(e));
+                fail.setStackTrace(ExceptionUtils.getStackFrames(e));
+                schemaRegistry.setStatus(fail);
+            }
+
+            log.debug("update {}", schemaRegistry);
         }
 
-        log.debug("update {}", schemaRegistry);
-        return UpdateControl.updateStatusSubResource(schemaRegistry);
+        if (latestDeploymentEvent.isPresent()) {
+            // build status
+            buildStatus(schemaRegistry);
+            return UpdateControl.updateStatusSubResource(schemaRegistry);
+        }
+
+        return UpdateControl.noUpdate();
     }
 
     /**
@@ -247,8 +271,11 @@ public class SchemaRegistryController implements ResourceController<SchemaRegist
                 List<String> secrets = template.getPod().getImagePullSecrets();
                 if (CollectionUtils.isNotEmpty(secrets)) {
                     List<LocalObjectReference> pullSecrets = operatorConfig.getImagePullSecrets();
-                    secrets.forEach(secret -> pullSecrets.add(
-                            new LocalObjectReferenceBuilder().withName(secret).build())
+                    secrets.forEach(secret -> {
+                                if (pullSecrets.stream().noneMatch(p -> p.getName().equals(secret))) {
+                                    pullSecrets.add(new LocalObjectReferenceBuilder().withName(secret).build());
+                                }
+                            }
                     );
                     deployment.getSpec().getTemplate().getSpec().setImagePullSecrets(pullSecrets);
                 }
@@ -298,7 +325,7 @@ public class SchemaRegistryController implements ResourceController<SchemaRegist
         String bootstrapServers = schemaRegistry.getSpec().getBootstrapServers();
         ValidationUtils.checkStringEmpty(bootstrapServers, "bootstrap servers is needed !");
         int findIndex = -1;
-        for (int i = 0 , row = envVars.size() ; i < row ; i ++) {
+        for (int i = 0, row = envVars.size(); i < row; i++) {
             if (envVars.get(i).getName().equals(OperatorConfig.SCHEMA_REGISTRY_KAFKASTORE_BOOTSTRAP_SERVERS)) {
                 findIndex = i;
                 break;
@@ -340,6 +367,10 @@ public class SchemaRegistryController implements ResourceController<SchemaRegist
 
             deployment.getSpec().getTemplate().getSpec().getContainers().get(0).setLivenessProbe(probe);
         }
+
+        OwnerReference ownerReference = deployment.getMetadata().getOwnerReferences().get(0);
+        ownerReference.setName(deploymentName);
+        ownerReference.setUid(schemaRegistry.getMetadata().getUid());
 
         return deployment;
     }

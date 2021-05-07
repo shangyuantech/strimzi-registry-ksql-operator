@@ -10,6 +10,10 @@ metadata:
   name: schema-registry-operator
 rules:
   - apiGroups: [""]
+    resources: [nodes]
+    verbs: [get, list, watch]
+
+  - apiGroups: [""]
     resources: [namespaces]
     verbs: [get, list, watch]
 
