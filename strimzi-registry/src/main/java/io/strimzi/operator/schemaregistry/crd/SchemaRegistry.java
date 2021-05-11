@@ -10,6 +10,9 @@ import io.fabric8.kubernetes.model.annotation.Version;
 public class SchemaRegistry extends CustomResource<SchemaRegistrySpec, SchemaRegistryStatus>
         implements Namespaced {
 
+    public SchemaRegistry() {
+    }
+
     private SchemaRegistrySpec spec;
 
     private SchemaRegistryStatus status;

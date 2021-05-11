@@ -16,6 +16,9 @@ import static io.strimzi.operator.model.ServiceType.ClusterIP;
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class SchemaRegistrySpec {
 
+    public SchemaRegistrySpec() {
+    }
+
     private String version = "2.6.0";
 
     private Integer replicas = 1;
@@ -33,6 +36,9 @@ public class SchemaRegistrySpec {
     private String image;
 
     public static class External {
+
+        public External() {
+        }
 
         private String type = ClusterIP.getName();
 
@@ -94,7 +100,13 @@ public class SchemaRegistrySpec {
     @JsonIgnoreProperties(ignoreUnknown = true)
     public static class Template {
 
+        public Template() {
+        }
+
         public static class Pod {
+
+            public Pod() {
+            }
 
             @JsonInclude(JsonInclude.Include.NON_EMPTY)
             private List<String> imagePullSecrets;
@@ -198,7 +210,7 @@ public class SchemaRegistrySpec {
     }
 
     public External getExternal() {
-        return external;
+        return external == null ? new External() : external;
     }
 
     public void setExternal(External external) {
@@ -214,6 +226,9 @@ public class SchemaRegistrySpec {
     }
 
     public static class Resources {
+
+        public Resources() {
+        }
 
         @JsonInclude(JsonInclude.Include.NON_EMPTY)
         private Map<String, String> requests;
@@ -258,6 +273,9 @@ public class SchemaRegistrySpec {
     }
 
     public static class ReadinessProbe {
+
+        public ReadinessProbe() {
+        }
 
         @JsonInclude(JsonInclude.Include.NON_EMPTY)
         private Integer initialDelaySeconds;
@@ -327,6 +345,9 @@ public class SchemaRegistrySpec {
     }
 
     public static class LivenessProbe {
+
+        public LivenessProbe() {
+        }
 
         @JsonInclude(JsonInclude.Include.NON_EMPTY)
         private Integer initialDelaySeconds;

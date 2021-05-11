@@ -7,6 +7,9 @@ import java.util.List;
 
 public class SchemaRegistryStatus {
 
+    public SchemaRegistryStatus() {
+    }
+
     @JsonInclude(JsonInclude.Include.NON_EMPTY)
     private Integer availableReplicas;
 

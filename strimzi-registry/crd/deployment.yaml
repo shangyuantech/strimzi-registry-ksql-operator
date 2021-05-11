@@ -3,18 +3,21 @@ kind: Deployment
 metadata:
   name: schema-registry-operator
   labels:
-    app: schema-registry-operator
+    name: schema-registry-operator
+    strimzi.io/kind: schema-registry-operator
 spec:
   replicas: 1
   strategy:
     type: Recreate
   selector:
     matchLabels:
-      app: schema-registry-operator
+      name: schema-registry-operator
+      strimzi.io/kind: schema-registry-operator
   template:
     metadata:
       labels:
-        app: schema-registry-operator
+        name: schema-registry-operator
+        strimzi.io/kind: schema-registry-operator
     spec:
       serviceAccountName: schema-registry-operator
       containers:
